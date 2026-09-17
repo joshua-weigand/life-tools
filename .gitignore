@@ -1,0 +1,12 @@
+# Ignore everything by default
+*
+
+# Allow directories so Git can traverse subfolders
+!*/
+
+# Keep essential repository files
+!.gitignore
+!README.md
+
+# Whitelist ONLY HTML files anywhere in the repo
+!*.html

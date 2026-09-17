@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compound Interest Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#FAF9F5;
+    --ink:#1C2430;
+    --ink-soft:#5B6472;
+    --rule:#D8D3C7;
+    --accent:#B8860B;
+    --principal:#2C3E50;
+    --contrib:#4A7C6C;
+    --growth:#B8860B;
+    --panel:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1080px;
+    margin:0 auto;
+    padding:48px 24px 80px;
+  }
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:18px;
+    margin-bottom:36px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  header h1{
+    font-size:28px;
+    font-weight:600;
+    letter-spacing:0.2px;
+    margin:0;
+  }
+  header .tag{
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:36px;
+  }
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr;}
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    padding:28px;
+  }
+  .card h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    margin:0 0 22px 0;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--rule);
+  }
+  label{
+    display:block;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+    font-family:'Courier New',monospace;
+    letter-spacing:0.4px;
+  }
+  .field{margin-bottom:20px;}
+  .input-row{
+    position:relative;
+  }
+  .input-row .prefix, .input-row .suffix{
+    position:absolute;
+    top:0; bottom:0;
+    display:flex;
+    align-items:center;
+    color:var(--ink-soft);
+    font-size:15px;
+    pointer-events:none;
+  }
+  .input-row .prefix{left:12px;}
+  .input-row .suffix{right:12px;}
+  input[type=number], select{
+    width:100%;
+    padding:10px 12px;
+    font-family:'Courier New',monospace;
+    font-size:15px;
+    border:1px solid var(--rule);
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s;
+  }
+  .input-row input[type=number]{padding-left:26px;}
+  .input-row.has-suffix input[type=number]{padding-right:44px;}
+  input[type=number]:focus, select:focus{
+    border-color:var(--accent);
+  }
+  input[type=range]{
+    width:100%;
+    accent-color:var(--accent);
+    margin-top:6px;
+  }
+  .term-display{
+    font-family:'Courier New',monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:4px;
+  }
+  .term-display b{color:var(--ink);}
+  .seg-row{
+    display:flex;
+    gap:8px;
+  }
+  .seg-btn{
+    flex:1;
+    padding:9px 4px;
+    border:1px solid var(--rule);
+    background:var(--paper);
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    text-align:center;
+    cursor:pointer;
+  }
+  .seg-btn.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+
+  .results{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+    margin-bottom:28px;
+  }
+  @media (max-width:600px){
+    .results{grid-template-columns:1fr;}
+  }
+  .result-cell{
+    background:var(--panel);
+    padding:20px 22px;
+  }
+  .result-cell .label{
+    font-family:'Courier New',monospace;
+    font-size:11px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .result-cell .value{
+    font-size:26px;
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+  }
+  .result-cell.hero{
+    grid-column:span 3;
+  }
+  @media (max-width:600px){
+    .result-cell.hero{grid-column:span 1;}
+  }
+  .result-cell.hero .value{font-size:34px;color:var(--principal);}
+  .result-cell.growth .value{color:var(--growth);}
+  .result-cell.contrib .value{color:var(--contrib);}
+
+  .chart-card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    padding:28px;
+    margin-bottom:28px;
+  }
+  .chart-card h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    margin:0 0 4px 0;
+  }
+  .chart-card .sub{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:18px;
+  }
+  canvas{max-width:100%;}
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:'Courier New',monospace;
+    font-size:13px;
+  }
+  thead th{
+    text-align:right;
+    font-weight:600;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.8px;
+    font-size:11px;
+    padding:8px 10px;
+    border-bottom:2px solid var(--ink);
+  }
+  thead th:first-child{text-align:left;}
+  tbody td{
+    text-align:right;
+    padding:7px 10px;
+    border-bottom:1px solid var(--rule);
+    font-variant-numeric:tabular-nums;
+  }
+  tbody td:first-child{text-align:left;color:var(--ink-soft);}
+  .table-wrap{
+    max-height:420px;
+    overflow-y:auto;
+    border:1px solid var(--rule);
+  }
+  .toggle-row{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+    margin-bottom:18px;
+  }
+  .toggle-btn{
+    flex:1;
+    padding:8px 6px;
+    border:1px solid var(--rule);
+    background:var(--paper);
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    letter-spacing:0.5px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .toggle-btn.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+  footer{
+    margin-top:40px;
+    font-size:12px;
+    color:var(--ink-soft);
+    border-top:1px solid var(--rule);
+    padding-top:16px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Compound Interest Calculator</h1>
+    <div class="tag">Growth Ledger</div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Investment Details</h2>
+
+      <div class="field">
+        <label for="initial">Initial Investment</label>
+        <div class="input-row">
+          <span class="prefix">$</span>
+          <input type="number" id="initial" value="10000" min="0" step="500">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="contribution">Recurring Contribution</label>
+        <div class="input-row">
+          <span class="prefix">$</span>
+          <input type="number" id="contribution" value="300" min="0" step="25">
+        </div>
+        <div class="seg-row" style="margin-top:10px;">
+          <div class="seg-btn active" data-freq="monthly">Monthly</div>
+          <div class="seg-btn" data-freq="annually">Annually</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="rate">Expected Annual Return</label>
+        <div class="input-row has-suffix">
+          <input type="number" id="rate" value="7" min="-20" max="30" step="0.1">
+          <span class="suffix">%</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="years">Time Horizon</label>
+        <input type="range" id="years" min="1" max="50" step="1" value="25">
+        <div class="term-display"><b id="yearsLabel">25</b> years</div>
+      </div>
+
+      <div class="field">
+        <label>Compounding Frequency</label>
+        <div class="seg-row">
+          <div class="seg-btn" data-compound="1">Annually</div>
+          <div class="seg-btn" data-compound="4">Quarterly</div>
+          <div class="seg-btn active" data-compound="12">Monthly</div>
+          <div class="seg-btn" data-compound="365">Daily</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="inflation">Adjust for Inflation</label>
+        <div class="input-row has-suffix">
+          <input type="number" id="inflation" value="0" min="0" max="10" step="0.1">
+          <span class="suffix">%/yr</span>
+        </div>
+        <div class="term-display">Set to 0 to ignore inflation</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="results">
+        <div class="result-cell hero">
+          <div class="label">Future Value</div>
+          <div class="value" id="outFuture">$0</div>
+        </div>
+        <div class="result-cell contrib">
+          <div class="label">Total Contributed</div>
+          <div class="value" id="outContributed">$0</div>
+        </div>
+        <div class="result-cell growth">
+          <div class="label">Total Growth (Interest)</div>
+          <div class="value" id="outGrowth">$0</div>
+        </div>
+        <div class="result-cell">
+          <div class="label">Real Value (Inflation-Adjusted)</div>
+          <div class="value" id="outReal">$0</div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h2>Growth Over Time</h2>
+        <div class="sub" id="chartSub">How your contributions and investment growth stack up year by year</div>
+        <div class="toggle-row">
+          <div class="toggle-btn active" data-view="stacked">Contributions vs. Growth</div>
+          <div class="toggle-btn" data-view="total">Total Balance</div>
+          <div class="toggle-btn" data-view="annual">Annual Growth</div>
+        </div>
+        <canvas id="growthChart" height="260"></canvas>
+      </div>
+
+      <div class="card">
+        <h2>Year-by-Year Breakdown</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Year</th>
+                <th>Contributions</th>
+                <th>Growth</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Estimates only. Assumes a constant annual return, which real investments rarely deliver — actual results will vary with market performance, fees, and taxes.
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let chart;
+let currentView = 'stacked';
+let contribFreq = 'monthly';
+let compoundN = 12;
+
+function fmt(n){
+  return n.toLocaleString('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0});
+}
+function fmt2(n){
+  return n.toLocaleString('en-US', {style:'currency', currency:'USD', maximumFractionDigits:2});
+}
+
+document.querySelectorAll('[data-freq]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-freq]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    contribFreq = btn.dataset.freq;
+    update();
+  });
+});
+document.querySelectorAll('[data-compound]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-compound]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    compoundN = parseInt(btn.dataset.compound);
+    update();
+  });
+});
+document.querySelectorAll('.toggle-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    const subs = {
+      stacked:'How your contributions and investment growth stack up year by year',
+      total:'Total account balance over time',
+      annual:'How much your balance grows each individual year'
+    };
+    $('chartSub').textContent = subs[currentView];
+    update();
+  });
+});
+
+const yearsInput = $('years');
+yearsInput.addEventListener('input', ()=>{
+  $('yearsLabel').textContent = yearsInput.value;
+  update();
+});
+['initial','contribution','rate','inflation'].forEach(id=>{
+  $(id).addEventListener('input', update);
+});
+
+function calculate(){
+  const initial = parseFloat($('initial').value) || 0;
+  const contribution = parseFloat($('contribution').value) || 0;
+  const annualRate = parseFloat($('rate').value) || 0;
+  const years = parseInt(yearsInput.value) || 1;
+  const inflation = parseFloat($('inflation').value) || 0;
+
+  // Simulate month-by-month for smooth, accurate compounding regardless of contribution frequency,
+  // using the selected compounding frequency to apply periodic growth.
+  const totalMonths = years * 12;
+  const ratePerCompoundPeriod = annualRate/100 / compoundN;
+  const monthsPerCompoundPeriod = 12 / compoundN;
+
+  let balance = initial;
+  let totalContributed = initial;
+  const yearlyData = []; // {year, contributions(cum), growth(cum), balance}
+  let cumContrib = initial;
+  let cumGrowthTracked = 0;
+
+  // track fractional progress toward next compounding event
+  let monthsSinceCompound = 0;
+
+  for (let m = 1; m <= totalMonths; m++){
+    // add monthly contribution
+    if (contribFreq === 'monthly'){
+      balance += contribution;
+      totalContributed += contribution;
+      cumContrib += contribution;
+    } else if (contribFreq === 'annually' && m % 12 === 0){
+      balance += contribution;
+      totalContributed += contribution;
+      cumContrib += contribution;
+    }
+
+    monthsSinceCompound++;
+    if (monthsSinceCompound >= monthsPerCompoundPeriod){
+      const growthThisPeriod = balance * ratePerCompoundPeriod;
+      balance += growthThisPeriod;
+      cumGrowthTracked += growthThisPeriod;
+      monthsSinceCompound = 0;
+    }
+
+    if (m % 12 === 0){
+      yearlyData.push({
+        year: m/12,
+        contributions: cumContrib,
+        growth: balance - cumContrib,
+        balance: balance
+      });
+    }
+  }
+
+  const futureValue = balance;
+  const totalGrowth = futureValue - totalContributed;
+  const realValue = inflation > 0 ? futureValue / Math.pow(1 + inflation/100, years) : futureValue;
+
+  return {futureValue, totalContributed, totalGrowth, realValue, yearlyData, years};
+}
+
+function renderResults(r){
+  $('outFuture').textContent = fmt(r.futureValue);
+  $('outContributed').textContent = fmt(r.totalContributed);
+  $('outGrowth').textContent = fmt(r.totalGrowth);
+  $('outReal').textContent = fmt(r.realValue);
+}
+
+function renderTable(yearlyData){
+  const body = $('scheduleBody');
+  body.innerHTML = '';
+  yearlyData.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.year}</td>
+      <td>${fmt2(row.contributions)}</td>
+      <td>${fmt2(row.growth)}</td>
+      <td>${fmt2(row.balance)}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+function baseOptions(xLabel, yLabel){
+  return {
+    responsive:true,
+    maintainAspectRatio:true,
+    interaction:{mode:'index', intersect:false},
+    plugins:{
+      legend:{
+        display:true,
+        labels:{font:{family:"'Courier New',monospace", size:11}, color:'#5B6472', boxWidth:12}
+      },
+      tooltip:{
+        callbacks:{
+          label: ctx => `${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0})}`
+        }
+      }
+    },
+    scales:{
+      x:{title:{display:true,text:xLabel||'Year', font:{family:"'Courier New',monospace",size:11}, color:'#5B6472'}, grid:{color:'#EDEAE0'}, ticks:{color:'#5B6472', font:{size:10}}},
+      y:{title:{display:true,text:yLabel||'', font:{family:"'Courier New',monospace",size:11}, color:'#5B6472'}, grid:{color:'#EDEAE0'}, ticks:{color:'#5B6472', font:{size:10}, callback:v=>'$'+Number(v).toLocaleString()}}
+    }
+  };
+}
+
+function buildChartConfig(yearlyData, view){
+  const labels = yearlyData.map(r => r.year);
+
+  if (view === 'stacked'){
+    const opts = baseOptions('Year','Balance ($)');
+    opts.scales.x.stacked = true;
+    opts.scales.y.stacked = true;
+    return {
+      type:'bar',
+      data:{
+        labels,
+        datasets:[
+          {label:'Contributions', data: yearlyData.map(r=>r.contributions.toFixed(2)), backgroundColor:'#4A7C6C', stack:'s'},
+          {label:'Growth', data: yearlyData.map(r=>r.growth.toFixed(2)), backgroundColor:'#B8860B', stack:'s'}
+        ]
+      },
+      options: opts
+    };
+  }
+
+  if (view === 'total'){
+    return {
+      type:'line',
+      data:{
+        labels,
+        datasets:[{
+          label:'Total Balance',
+          data: yearlyData.map(r=>r.balance.toFixed(2)),
+          borderColor:'#2C3E50',
+          backgroundColor:'rgba(44,62,80,0.08)',
+          fill:true,
+          tension:0.2,
+          pointRadius:0,
+          borderWidth:2
+        }]
+      },
+      options: baseOptions('Year','Balance ($)')
+    };
+  }
+
+  // annual growth
+  const annualGrowthAmounts = [];
+  let prevBalance = 0;
+  let prevContrib = 0;
+  yearlyData.forEach(r=>{
+    const contribThisYear = r.contributions - prevContrib;
+    const growthThisYear = (r.balance - prevBalance) - contribThisYear;
+    annualGrowthAmounts.push(Math.max(growthThisYear,0).toFixed(2));
+    prevBalance = r.balance;
+    prevContrib = r.contributions;
+  });
+  return {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Growth Earned That Year',
+        data: annualGrowthAmounts,
+        backgroundColor:'#B8860B'
+      }]
+    },
+    options: baseOptions('Year','Growth ($)')
+  };
+}
+
+function renderChart(yearlyData){
+  const cfg = buildChartConfig(yearlyData, currentView);
+  if (chart) chart.destroy();
+  chart = new Chart($('growthChart').getContext('2d'), cfg);
+}
+
+function update(){
+  const r = calculate();
+  renderResults(r);
+  renderTable(r.yearlyData);
+  renderChart(r.yearlyData);
+}
+
+update();
+</script>
+</body>
+</html>

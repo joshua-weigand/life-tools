@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto Loan Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#FAF9F5;
+    --ink:#1C2430;
+    --ink-soft:#5B6472;
+    --rule:#D8D3C7;
+    --accent:#B8860B;      /* ledger-stamp gold */
+    --accent-deep:#8F6A08;
+    --principal:#2C3E50;   /* deep slate for principal */
+    --interest:#B8860B;    /* gold for interest */
+    --panel:#FFFFFF;
+    --danger:#9B2C2C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1080px;
+    margin:0 auto;
+    padding:48px 24px 80px;
+  }
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:18px;
+    margin-bottom:36px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  header h1{
+    font-size:28px;
+    font-weight:600;
+    letter-spacing:0.2px;
+    margin:0;
+  }
+  header .tag{
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    gap:36px;
+  }
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr;}
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    padding:28px;
+  }
+  .card h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    margin:0 0 22px 0;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--rule);
+  }
+  label{
+    display:block;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+    font-family:'Courier New',monospace;
+    letter-spacing:0.4px;
+  }
+  .field{margin-bottom:20px;}
+  .input-row{
+    position:relative;
+  }
+  .input-row .prefix, .input-row .suffix{
+    position:absolute;
+    top:0; bottom:0;
+    display:flex;
+    align-items:center;
+    color:var(--ink-soft);
+    font-size:15px;
+    pointer-events:none;
+  }
+  .input-row .prefix{left:12px;}
+  .input-row .suffix{right:12px;}
+  input[type=number]{
+    width:100%;
+    padding:10px 12px;
+    font-family:'Courier New',monospace;
+    font-size:15px;
+    border:1px solid var(--rule);
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s;
+  }
+  .input-row input[type=number]{padding-left:26px;}
+  .input-row.has-suffix input[type=number]{padding-right:44px;}
+  input[type=number]:focus{
+    border-color:var(--accent);
+  }
+  input[type=range]{
+    width:100%;
+    accent-color:var(--accent);
+    margin-top:6px;
+  }
+  .term-display{
+    font-family:'Courier New',monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-top:4px;
+  }
+  .term-display b{color:var(--ink);}
+
+  .results{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+    margin-bottom:28px;
+  }
+  @media (max-width:600px){
+    .results{grid-template-columns:1fr;}
+  }
+  .result-cell{
+    background:var(--panel);
+    padding:20px 22px;
+  }
+  .result-cell .label{
+    font-family:'Courier New',monospace;
+    font-size:11px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .result-cell .value{
+    font-size:26px;
+    font-weight:600;
+    font-variant-numeric:tabular-nums;
+  }
+  .result-cell.accent .value{color:var(--interest);}
+  .result-cell.principal .value{color:var(--principal);}
+
+  .chart-card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    padding:28px;
+    margin-bottom:28px;
+  }
+  .chart-card h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    margin:0 0 4px 0;
+  }
+  .chart-card .sub{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:18px;
+  }
+  canvas{max-width:100%;}
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:'Courier New',monospace;
+    font-size:13px;
+  }
+  thead th{
+    text-align:right;
+    font-weight:600;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.8px;
+    font-size:11px;
+    padding:8px 10px;
+    border-bottom:2px solid var(--ink);
+  }
+  thead th:first-child{text-align:left;}
+  tbody td{
+    text-align:right;
+    padding:7px 10px;
+    border-bottom:1px solid var(--rule);
+    font-variant-numeric:tabular-nums;
+  }
+  tbody td:first-child{text-align:left;color:var(--ink-soft);}
+  tbody tr.year-row td{
+    font-weight:700;
+    background:#F4F1E8;
+  }
+  .table-wrap{
+    max-height:420px;
+    overflow-y:auto;
+    border:1px solid var(--rule);
+  }
+  .legend{
+    display:flex;
+    gap:22px;
+    margin-bottom:4px;
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .swatch{width:11px;height:11px;display:inline-block;}
+  .toggle-row{
+    display:flex;
+    gap:8px;
+    margin-top:8px;
+  }
+  .toggle-btn{
+    flex:1;
+    padding:8px 6px;
+    border:1px solid var(--rule);
+    background:var(--paper);
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    letter-spacing:0.5px;
+    cursor:pointer;
+    text-align:center;
+  }
+  .toggle-btn.active{
+    background:var(--ink);
+    color:var(--paper);
+    border-color:var(--ink);
+  }
+  .override-field{
+    margin-top:24px;
+    padding-top:20px;
+    border-top:1px dashed var(--rule);
+  }
+  .override-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    cursor:pointer;
+    margin-bottom:0;
+  }
+  .override-head span{
+    font-size:13px;
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    letter-spacing:0.4px;
+  }
+  .switch{
+    position:relative;
+    display:inline-block;
+    width:38px;
+    height:20px;
+    flex-shrink:0;
+  }
+  .switch input{
+    opacity:0;
+    width:0;
+    height:0;
+  }
+  .switch-track{
+    position:absolute;
+    cursor:pointer;
+    inset:0;
+    background:var(--rule);
+    transition:.15s;
+  }
+  .switch-track:before{
+    content:"";
+    position:absolute;
+    height:14px;
+    width:14px;
+    left:3px;
+    bottom:3px;
+    background:var(--panel);
+    transition:.15s;
+  }
+  .switch input:checked + .switch-track{
+    background:var(--accent);
+  }
+  .switch input:checked + .switch-track:before{
+    transform:translateX(18px);
+  }
+  .override-body{
+    margin-top:16px;
+    display:none;
+  }
+  .override-body.show{display:block;}
+  .override-hint{
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-top:6px;
+    line-height:1.5;
+  }
+  .override-hint b{color:var(--ink);}
+
+  .compare-card{display:none;}
+  .compare-card.show{display:block;}
+  .compare-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+  }
+  @media (max-width:600px){
+    .compare-grid{grid-template-columns:1fr;}
+  }
+  .compare-col{
+    background:var(--panel);
+    padding:18px 20px;
+  }
+  .compare-col .compare-label{
+    font-family:'Courier New',monospace;
+    font-size:11px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:12px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--rule);
+  }
+  .compare-col.new .compare-label{color:var(--accent-deep);}
+  .compare-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-size:14px;
+    padding:5px 0;
+  }
+  .compare-row span{color:var(--ink-soft);font-size:13px;}
+  .compare-row b{font-variant-numeric:tabular-nums;}
+  .savings-strip{
+    margin-top:18px;
+    padding:16px 20px;
+    background:#F4F1E8;
+    border:1px solid var(--rule);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+    font-family:'Courier New',monospace;
+    font-size:13px;
+    color:var(--ink-soft);
+  }
+  .savings-strip b{
+    color:var(--accent-deep);
+    font-size:16px;
+  }
+  .override-warning{
+    margin-top:16px;
+    padding:12px 16px;
+    background:#FBEEEE;
+    border:1px solid var(--danger);
+    color:var(--danger);
+    font-family:'Courier New',monospace;
+    font-size:13px;
+  }
+  footer{
+    margin-top:40px;
+    font-size:12px;
+    color:var(--ink-soft);
+    border-top:1px solid var(--rule);
+    padding-top:16px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Auto Loan Calculator</h1>
+    <div class="tag">Amortization Ledger</div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Loan Details</h2>
+
+      <div class="field">
+        <label for="price">Vehicle Price</label>
+        <div class="input-row">
+          <span class="prefix">$</span>
+          <input type="number" id="price" value="35000" min="0" step="500">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="down">Down Payment</label>
+        <div class="input-row">
+          <span class="prefix">$</span>
+          <input type="number" id="down" value="5000" min="0" step="500">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="tradein">Trade-In Value</label>
+        <div class="input-row">
+          <span class="prefix">$</span>
+          <input type="number" id="tradein" value="0" min="0" step="500">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="rate">Annual Interest Rate (APR)</label>
+        <div class="input-row has-suffix">
+          <input type="number" id="rate" value="6.5" min="0" max="30" step="0.1">
+          <span class="suffix">%</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="term">Loan Term</label>
+        <input type="range" id="term" min="12" max="84" step="12" value="60">
+        <div class="term-display"><b id="termLabel">60</b> months (<span id="termYears">5</span> years)</div>
+      </div>
+
+      <div class="field">
+        <label for="fees">Taxes &amp; Fees (financed)</label>
+        <div class="input-row">
+          <span class="prefix">$</span>
+          <input type="number" id="fees" value="0" min="0" step="100">
+        </div>
+      </div>
+
+      <div class="override-field">
+        <label class="override-head" for="overrideToggle">
+          <span>Override Monthly Payment</span>
+          <span class="switch">
+            <input type="checkbox" id="overrideToggle">
+            <span class="switch-track"></span>
+          </span>
+        </label>
+        <div class="override-body" id="overrideBody">
+          <div class="input-row">
+            <span class="prefix">$</span>
+            <input type="number" id="overridePayment" min="0" step="10">
+          </div>
+          <div class="override-hint" id="overrideHint"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="results">
+        <div class="result-cell principal">
+          <div class="label">Amount Financed</div>
+          <div class="value" id="outFinanced">$0</div>
+        </div>
+        <div class="result-cell">
+          <div class="label">Monthly Payment</div>
+          <div class="value" id="outPayment">$0</div>
+        </div>
+        <div class="result-cell accent">
+          <div class="label">Total Interest Paid</div>
+          <div class="value" id="outInterest">$0</div>
+        </div>
+      </div>
+
+      <div class="card compare-card" id="compareCard">
+        <h2>Payoff Comparison</h2>
+        <div class="compare-grid">
+          <div class="compare-col">
+            <div class="compare-label">Standard Schedule</div>
+            <div class="compare-row"><span>Monthly Payment</span><b id="cmpStdPayment"></b></div>
+            <div class="compare-row"><span>Payoff Time</span><b id="cmpStdTime"></b></div>
+            <div class="compare-row"><span>Total Interest</span><b id="cmpStdInterest"></b></div>
+          </div>
+          <div class="compare-col new">
+            <div class="compare-label">With Override</div>
+            <div class="compare-row"><span>Monthly Payment</span><b id="cmpNewPayment"></b></div>
+            <div class="compare-row"><span>Payoff Time</span><b id="cmpNewTime"></b></div>
+            <div class="compare-row"><span>Total Interest</span><b id="cmpNewInterest"></b></div>
+          </div>
+        </div>
+        <div class="savings-strip" id="savingsStrip">
+          <span>Payoff <b id="cmpMonthsSaved"></b></span>
+          <span>Interest <b id="cmpInterestSaved"></b></span>
+        </div>
+        <div class="override-warning" id="overrideWarning" style="display:none;"></div>
+      </div>
+
+      <div class="chart-card">
+        <h2>Balance &amp; Cost Over Time</h2>
+        <div class="sub" id="chartSub">Remaining principal balance vs. cumulative interest paid</div>
+        <div class="toggle-row">
+          <div class="toggle-btn active" data-view="balance">Remaining Balance</div>
+          <div class="toggle-btn" data-view="split">Payment Breakdown</div>
+          <div class="toggle-btn" data-view="cumulative">Cumulative Paid</div>
+        </div>
+        <canvas id="loanChart" height="260"></canvas>
+      </div>
+
+      <div class="card">
+        <h2>Amortization Schedule</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Payment</th>
+                <th>Principal</th>
+                <th>Interest</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Estimates only. Actual rates, fees, and terms depend on your lender and creditworthiness. Interest is calculated on a standard monthly-amortizing basis.
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fields = ['price','down','tradein','rate','fees'];
+const termInput = $('term');
+let chart;
+let currentView = 'balance';
+
+function fmt(n){
+  return n.toLocaleString('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0});
+}
+function fmt2(n){
+  return n.toLocaleString('en-US', {style:'currency', currency:'USD', maximumFractionDigits:2});
+}
+
+// Amortizes a loan at a fixed payment until the balance reaches zero (or a
+// safety cap is hit, in which case the payment never pays off the loan).
+function amortizeSchedule(financed, monthlyRate, payment, capMonths){
+  let balance = financed;
+  let totalInterest = 0;
+  const schedule = [];
+  let m = 0;
+  while (balance > 0.005 && m < capMonths){
+    m++;
+    const interestPortion = balance * monthlyRate;
+    let principalPortion = payment - interestPortion;
+    if (principalPortion <= 0) return null; // payment doesn't even cover interest
+    if (principalPortion >= balance) principalPortion = balance;
+    balance = Math.max(balance - principalPortion, 0);
+    totalInterest += interestPortion;
+    schedule.push({
+      month: m,
+      payment: principalPortion + interestPortion,
+      principal: principalPortion,
+      interest: interestPortion,
+      balance: balance
+    });
+  }
+  if (balance > 0.005) return null; // didn't pay off within the cap
+  return {schedule, totalInterest, months: m};
+}
+
+function calculate(){
+  const price = parseFloat($('price').value) || 0;
+  const down = parseFloat($('down').value) || 0;
+  const tradein = parseFloat($('tradein').value) || 0;
+  const fees = parseFloat($('fees').value) || 0;
+  const rate = parseFloat($('rate').value) || 0;
+  const months = parseInt(termInput.value) || 60;
+
+  const financed = Math.max(price - down - tradein + fees, 0);
+  const monthlyRate = (rate/100)/12;
+
+  let payment;
+  if (monthlyRate === 0){
+    payment = financed / months;
+  } else {
+    payment = financed * (monthlyRate * Math.pow(1+monthlyRate, months)) / (Math.pow(1+monthlyRate, months) - 1);
+  }
+  if (!isFinite(payment)) payment = 0;
+
+  // Standard schedule pays off in exactly `months` by construction; the last
+  // payment is squared up to zero out rounding drift.
+  let balance = financed;
+  let totalInterest = 0;
+  const schedule = [];
+  for (let m=1; m<=months; m++){
+    const interestPortion = balance * monthlyRate;
+    let principalPortion = payment - interestPortion;
+    if (m === months) principalPortion = balance;
+    balance = Math.max(balance - principalPortion, 0);
+    totalInterest += interestPortion;
+    schedule.push({
+      month: m,
+      payment: principalPortion + interestPortion,
+      principal: principalPortion,
+      interest: interestPortion,
+      balance: balance
+    });
+  }
+
+  const standard = {financed, payment, totalInterest, schedule, months};
+
+  // Interest-only threshold: the minimum payment that keeps the balance from growing.
+  const minPayment = financed * monthlyRate;
+
+  let override = null;
+  let overrideError = null;
+  const overrideEnabled = $('overrideToggle').checked;
+  if (overrideEnabled){
+    const overridePayment = parseFloat($('overridePayment').value) || 0;
+    if (overridePayment <= 0){
+      overrideError = 'Enter a monthly payment amount.';
+    } else if (monthlyRate > 0 && overridePayment <= minPayment){
+      overrideError = `Too low to ever pay off the loan — must exceed ${fmt2(minPayment)}/mo in interest.`;
+    } else {
+      const result = amortizeSchedule(financed, monthlyRate, overridePayment, 1200);
+      if (!result){
+        overrideError = 'This payment would take longer than 100 years to pay off — try a higher amount.';
+      } else {
+        override = {financed, payment: overridePayment, totalInterest: result.totalInterest, schedule: result.schedule, months: result.months};
+      }
+    }
+  }
+
+  return {financed, monthlyRate, standard, override, overrideEnabled, overrideError, minPayment};
+}
+
+function renderResults(active){
+  $('outFinanced').textContent = fmt(active.financed);
+  $('outPayment').textContent = fmt2(active.payment);
+  $('outInterest').textContent = fmt(active.totalInterest);
+}
+
+function monthsToText(months){
+  const y = Math.floor(months/12);
+  const m = months % 12;
+  if (y === 0) return `${m} mo`;
+  if (m === 0) return `${y} yr`;
+  return `${y} yr ${m} mo`;
+}
+
+function renderComparison(r){
+  const card = $('compareCard');
+  const warningEl = $('overrideWarning');
+
+  if (!r.overrideEnabled){
+    card.classList.remove('show');
+    return;
+  }
+  card.classList.add('show');
+
+  if (r.overrideError){
+    warningEl.style.display = 'block';
+    warningEl.textContent = r.overrideError;
+    $('savingsStrip').style.display = 'none';
+    ['cmpStdPayment','cmpStdTime','cmpStdInterest','cmpNewPayment','cmpNewTime','cmpNewInterest'].forEach(id => $(id).textContent = '—');
+    return;
+  }
+
+  warningEl.style.display = 'none';
+  $('savingsStrip').style.display = 'flex';
+
+  const std = r.standard;
+  const ov = r.override;
+
+  $('cmpStdPayment').textContent = fmt2(std.payment);
+  $('cmpStdTime').textContent = monthsToText(std.months);
+  $('cmpStdInterest').textContent = fmt(std.totalInterest);
+
+  $('cmpNewPayment').textContent = fmt2(ov.payment);
+  $('cmpNewTime').textContent = monthsToText(ov.months);
+  $('cmpNewInterest').textContent = fmt(ov.totalInterest);
+
+  const monthsDiff = std.months - ov.months; // positive = faster
+  const interestDiff = std.totalInterest - ov.totalInterest; // positive = saved
+
+  const strip = $('savingsStrip');
+  if (monthsDiff > 0){
+    $('cmpMonthsSaved').textContent = `${monthsToText(monthsDiff)} sooner`;
+  } else if (monthsDiff < 0){
+    $('cmpMonthsSaved').textContent = `${monthsToText(-monthsDiff)} later`;
+  } else {
+    $('cmpMonthsSaved').textContent = 'the same time';
+  }
+
+  if (interestDiff > 0){
+    $('cmpInterestSaved').textContent = `${fmt(interestDiff)} saved`;
+  } else if (interestDiff < 0){
+    $('cmpInterestSaved').textContent = `${fmt(-interestDiff)} more`;
+  } else {
+    $('cmpInterestSaved').textContent = 'no change';
+  }
+}
+
+function renderTable(schedule){
+  const body = $('scheduleBody');
+  body.innerHTML = '';
+  schedule.forEach(row => {
+    const tr = document.createElement('tr');
+    if (row.month % 12 === 0) tr.classList.add('year-row');
+    tr.innerHTML = `
+      <td>${row.month}</td>
+      <td>${fmt2(row.payment)}</td>
+      <td>${fmt2(row.principal)}</td>
+      <td>${fmt2(row.interest)}</td>
+      <td>${fmt2(row.balance)}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+function buildChartConfig(schedule, view){
+  const labels = schedule.map(r => r.month);
+
+  if (view === 'balance'){
+    return {
+      type:'line',
+      data:{
+        labels,
+        datasets:[{
+          label:'Remaining Balance',
+          data: schedule.map(r=>r.balance.toFixed(2)),
+          borderColor:'#2C3E50',
+          backgroundColor:'rgba(44,62,80,0.08)',
+          fill:true,
+          tension:0.15,
+          pointRadius:0,
+          borderWidth:2
+        }]
+      },
+      options: baseOptions('Month','Balance ($)')
+    };
+  }
+
+  if (view === 'split'){
+    return {
+      type:'bar',
+      data:{
+        labels,
+        datasets:[
+          {label:'Principal', data: schedule.map(r=>r.principal.toFixed(2)), backgroundColor:'#2C3E50', stack:'s'},
+          {label:'Interest', data: schedule.map(r=>r.interest.toFixed(2)), backgroundColor:'#B8860B', stack:'s'}
+        ]
+      },
+      options: {...baseOptions('Month','Payment ($)'), scales:{...baseOptions().scales, x:{...baseOptions().scales.x, stacked:true}, y:{...baseOptions().scales.y, stacked:true}}}
+    };
+  }
+
+  // cumulative
+  let cumPrincipal = 0, cumInterest = 0;
+  const cumP = [], cumI = [];
+  schedule.forEach(r=>{
+    cumPrincipal += r.principal;
+    cumInterest += r.interest;
+    cumP.push(cumPrincipal.toFixed(2));
+    cumI.push(cumInterest.toFixed(2));
+  });
+  return {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Cumulative Principal Paid', data: cumP, borderColor:'#2C3E50', backgroundColor:'rgba(44,62,80,0.08)', fill:true, tension:0.15, pointRadius:0, borderWidth:2},
+        {label:'Cumulative Interest Paid', data: cumI, borderColor:'#B8860B', backgroundColor:'rgba(184,134,11,0.12)', fill:true, tension:0.15, pointRadius:0, borderWidth:2}
+      ]
+    },
+    options: baseOptions('Month','Total Paid ($)')
+  };
+}
+
+function baseOptions(xLabel, yLabel){
+  return {
+    responsive:true,
+    maintainAspectRatio:true,
+    interaction:{mode:'index', intersect:false},
+    plugins:{
+      legend:{
+        display:true,
+        labels:{font:{family:"'Courier New',monospace", size:11}, color:'#5B6472', boxWidth:12}
+      },
+      tooltip:{
+        callbacks:{
+          label: ctx => `${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0})}`
+        }
+      }
+    },
+    scales:{
+      x:{title:{display:true,text:xLabel||'Month', font:{family:"'Courier New',monospace",size:11}, color:'#5B6472'}, grid:{color:'#EDEAE0'}, ticks:{color:'#5B6472', font:{size:10}}},
+      y:{title:{display:true,text:yLabel||'', font:{family:"'Courier New',monospace",size:11}, color:'#5B6472'}, grid:{color:'#EDEAE0'}, ticks:{color:'#5B6472', font:{size:10}, callback:v=>'$'+Number(v).toLocaleString()}}
+    }
+  };
+}
+
+function renderChart(schedule){
+  const cfg = buildChartConfig(schedule, currentView);
+  if (chart) chart.destroy();
+  chart = new Chart($('loanChart').getContext('2d'), cfg);
+}
+
+function update(){
+  const r = calculate();
+
+  // Use the override schedule when it's enabled and valid; otherwise the standard one.
+  const active = (r.overrideEnabled && r.override) ? r.override : r.standard;
+
+  renderResults(active);
+  renderTable(active.schedule);
+  renderChart(active.schedule);
+  renderComparison(r);
+
+  // Keep the hint under the override field current.
+  if ($('overrideToggle').checked){
+    $('overrideHint').innerHTML = `Standard payment is <b>${fmt2(r.standard.payment)}</b>/mo. Must exceed <b>${fmt2(r.minPayment)}</b>/mo to pay down the balance.`;
+  }
+}
+
+fields.forEach(id => $(id).addEventListener('input', update));
+termInput.addEventListener('input', () => {
+  $('termLabel').textContent = termInput.value;
+  $('termYears').textContent = (termInput.value/12).toFixed(termInput.value % 12 === 0 ? 0 : 1);
+  update();
+});
+
+const overrideToggle = $('overrideToggle');
+const overridePaymentInput = $('overridePayment');
+
+overrideToggle.addEventListener('change', () => {
+  $('overrideBody').classList.toggle('show', overrideToggle.checked);
+  if (overrideToggle.checked && (!overridePaymentInput.value || parseFloat(overridePaymentInput.value) === 0)){
+    const r = calculate();
+    overridePaymentInput.value = r.standard.payment.toFixed(2);
+  }
+  update();
+});
+overridePaymentInput.addEventListener('input', update);
+
+document.querySelectorAll('.toggle-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    const subs = {
+      balance:'Remaining principal balance over the life of the loan',
+      split:'How much of each payment goes to principal vs. interest',
+      cumulative:'Running total of principal and interest paid to date'
+    };
+    $('chartSub').textContent = subs[currentView];
+    update();
+  });
+});
+
+$('termLabel').textContent = termInput.value;
+$('termYears').textContent = (termInput.value/12).toFixed(0);
+update();
+</script>
+</body>
+</html>

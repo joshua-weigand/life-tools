@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit Card Payoff Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --paper:#FAF9F5;
+    --ink:#1C2430;
+    --ink-soft:#5B6472;
+    --rule:#D8D3C7;
+    --accent:#B8860B;
+    --strategy:#2C3E50;
+    --minonly:#9B6B43;
+    --panel:#FFFFFF;
+    --good:#3F6B4E;
+    --bad:#9B2C2C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:1120px;
+    margin:0 auto;
+    padding:48px 24px 80px;
+  }
+  header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:18px;
+    margin-bottom:36px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  header h1{
+    font-size:28px;
+    font-weight:600;
+    letter-spacing:0.2px;
+    margin:0;
+  }
+  header .tag{
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:380px 1fr;
+    gap:36px;
+  }
+  @media (max-width:820px){
+    .grid{grid-template-columns:1fr;}
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    padding:24px;
+  }
+  .card h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    margin:0 0 18px 0;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--rule);
+  }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--ink-soft);
+    margin-bottom:5px;
+    font-family:'Courier New',monospace;
+    letter-spacing:0.3px;
+  }
+  .field{margin-bottom:14px;}
+  .input-row{position:relative;}
+  .input-row .prefix, .input-row .suffix{
+    position:absolute;
+    top:0; bottom:0;
+    display:flex;
+    align-items:center;
+    color:var(--ink-soft);
+    font-size:14px;
+    pointer-events:none;
+  }
+  .input-row .prefix{left:10px;}
+  .input-row .suffix{right:10px;}
+  input[type=number], input[type=text], select{
+    width:100%;
+    padding:8px 10px;
+    font-family:'Courier New',monospace;
+    font-size:13.5px;
+    border:1px solid var(--rule);
+    background:var(--paper);
+    color:var(--ink);
+    outline:none;
+    transition:border-color .15s;
+  }
+  .input-row input[type=number]{padding-left:22px;}
+  input:focus, select:focus{border-color:var(--accent);}
+
+  .card-row{
+    border:1px solid var(--rule);
+    padding:16px;
+    margin-bottom:14px;
+    position:relative;
+    background:var(--paper);
+  }
+  .card-row .card-name-field{margin-bottom:12px;}
+  .card-row .three-col{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:8px;
+  }
+  .remove-btn{
+    position:absolute;
+    top:10px; right:10px;
+    width:22px; height:22px;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid var(--rule);
+    background:var(--panel);
+    color:var(--bad);
+    font-family:'Courier New',monospace;
+    font-size:13px;
+    cursor:pointer;
+    line-height:1;
+  }
+  .remove-btn:hover{border-color:var(--bad);}
+  .add-card-btn{
+    width:100%;
+    padding:10px;
+    border:1px dashed var(--rule);
+    background:transparent;
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    font-size:12.5px;
+    letter-spacing:0.5px;
+    cursor:pointer;
+    margin-bottom:20px;
+  }
+  .add-card-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  .field-tight{margin-bottom:0;}
+  .seg-row{display:flex;gap:8px;}
+  .seg-btn{
+    flex:1;
+    padding:8px 4px;
+    border:1px solid var(--rule);
+    background:var(--paper);
+    color:var(--ink-soft);
+    font-family:'Courier New',monospace;
+    font-size:12px;
+    text-align:center;
+    cursor:pointer;
+  }
+  .seg-btn.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .helper{
+    font-family:'Courier New',monospace;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin-top:6px;
+    line-height:1.5;
+  }
+
+  .verdict{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    padding:28px;
+    margin-bottom:28px;
+    text-align:center;
+  }
+  .verdict .headline{font-size:22px;font-weight:600;margin-bottom:6px;}
+  .verdict .headline .win{color:var(--good);}
+  .verdict .sub{font-family:'Courier New',monospace;font-size:13px;color:var(--ink-soft);}
+  .verdict .warn{color:var(--bad);font-family:'Courier New',monospace;font-size:12.5px;margin-top:10px;}
+
+  .results{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+    margin-bottom:28px;
+  }
+  @media (max-width:600px){.results{grid-template-columns:1fr;}}
+  .result-cell{background:var(--panel);padding:20px 22px;}
+  .result-cell .label{
+    font-family:'Courier New',monospace;
+    font-size:11px;
+    letter-spacing:1.2px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .result-cell .value{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .result-cell.strategy .value{color:var(--strategy);}
+  .result-cell.minonly .value{color:var(--minonly);}
+  .result-cell .detail{font-family:'Courier New',monospace;font-size:11.5px;color:var(--ink-soft);margin-top:6px;}
+
+  .chart-card{
+    background:var(--panel);
+    border:1px solid var(--rule);
+    padding:28px;
+    margin-bottom:28px;
+  }
+  .chart-card h2{
+    font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--ink-soft);
+    font-family:'Courier New',monospace;margin:0 0 4px 0;
+  }
+  .chart-card .sub{font-size:13px;color:var(--ink-soft);margin-bottom:18px;}
+  canvas{max-width:100%;}
+
+  table{width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:12.5px;}
+  thead th{
+    text-align:right;font-weight:600;color:var(--ink-soft);text-transform:uppercase;
+    letter-spacing:0.6px;font-size:10.5px;padding:8px 9px;border-bottom:2px solid var(--ink);
+  }
+  thead th:first-child{text-align:left;}
+  tbody td{text-align:right;padding:7px 9px;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums;}
+  tbody td:first-child{text-align:left;color:var(--ink-soft);}
+  .table-wrap{max-height:380px;overflow-y:auto;border:1px solid var(--rule);}
+
+  .payoff-order{
+    font-family:'Courier New',monospace;
+    font-size:12.5px;
+  }
+  .payoff-order li{margin-bottom:6px;}
+
+  .toggle-row{display:flex;gap:8px;margin-top:8px;margin-bottom:18px;}
+  .toggle-btn{
+    flex:1;padding:8px 6px;border:1px solid var(--rule);background:var(--paper);
+    color:var(--ink-soft);font-family:'Courier New',monospace;font-size:12px;
+    letter-spacing:0.5px;cursor:pointer;text-align:center;
+  }
+  .toggle-btn.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  footer{margin-top:40px;font-size:12px;color:var(--ink-soft);border-top:1px solid var(--rule);padding-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Credit Card Payoff Calculator</h1>
+    <div class="tag">Debt Ledger</div>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card" style="margin-bottom:20px;">
+        <h2>Your Cards</h2>
+        <div id="cardsContainer"></div>
+        <div class="add-card-btn" id="addCardBtn">+ Add Another Card</div>
+      </div>
+
+      <div class="card">
+        <h2>Payoff Plan</h2>
+        <div class="field">
+          <label for="extra">Extra Monthly Payment</label>
+          <div class="input-row">
+            <span class="prefix">$</span>
+            <input type="number" id="extra" value="150" min="0" step="10">
+          </div>
+          <div class="helper">On top of the minimum payments on all cards</div>
+        </div>
+        <div class="field">
+          <label>Strategy</label>
+          <div class="seg-row">
+            <div class="seg-btn active" data-strategy="avalanche">Avalanche</div>
+            <div class="seg-btn" data-strategy="snowball">Snowball</div>
+          </div>
+          <div class="helper" id="strategyHelper">Avalanche: pay off the highest-APR card first — minimizes total interest.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="verdict">
+        <div class="headline" id="verdictHeadline">—</div>
+        <div class="sub" id="verdictSub">—</div>
+        <div class="warn" id="verdictWarn" style="display:none;"></div>
+      </div>
+
+      <div class="results">
+        <div class="result-cell strategy">
+          <div class="label">Your Plan</div>
+          <div class="value" id="outStrategyTime">—</div>
+          <div class="detail" id="outStrategyDetail"></div>
+        </div>
+        <div class="result-cell minonly">
+          <div class="label">Minimum Payments Only</div>
+          <div class="value" id="outMinTime">—</div>
+          <div class="detail" id="outMinDetail"></div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h2>Balance Over Time</h2>
+        <div class="sub" id="chartSub">Total balance across all cards under each approach</div>
+        <div class="toggle-row">
+          <div class="toggle-btn active" data-view="compare">Your Plan vs. Minimums Only</div>
+          <div class="toggle-btn" data-view="bycard">By Card (Your Plan)</div>
+          <div class="toggle-btn" data-view="interest">Cumulative Interest</div>
+        </div>
+        <canvas id="payoffChart" height="260"></canvas>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;">
+        <h2>Payoff Order (Your Plan)</h2>
+        <ol class="payoff-order" id="payoffOrderList"></ol>
+      </div>
+
+      <div class="card">
+        <h2>Month-by-Month (Your Plan)</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Month</th><th>Payment</th><th>Interest</th><th>Total Balance</th></tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Estimates only. Assumes no new charges are added to any card, interest compounds monthly on the statement balance, and minimum payments are approximated from what you enter for each card today (with a $25 floor as balances shrink). Actual card terms vary by issuer.
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let chart;
+let currentView = 'compare';
+let strategy = 'avalanche';
+let cardCount = 0;
+
+const defaultCards = [
+  {name:'Card 1', balance:4500, apr:22.99, minPayment:110},
+  {name:'Card 2', balance:2200, apr:19.99, minPayment:60}
+];
+
+function fmt(n){return n.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});}
+function fmt2(n){return n.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2});}
+
+function addCardRow(data){
+  cardCount++;
+  const id = cardCount;
+  const container = $('cardsContainer');
+  const row = document.createElement('div');
+  row.className = 'card-row';
+  row.dataset.id = id;
+  row.innerHTML = `
+    <div class="remove-btn" title="Remove card">&times;</div>
+    <div class="field card-name-field field-tight">
+      <label>Card Name</label>
+      <input type="text" class="c-name" value="${data.name}">
+    </div>
+    <div class="three-col">
+      <div class="field field-tight">
+        <label>Balance</label>
+        <div class="input-row"><span class="prefix">$</span><input type="number" class="c-balance" value="${data.balance}" min="0" step="50"></div>
+      </div>
+      <div class="field field-tight">
+        <label>APR %</label>
+        <input type="number" class="c-apr" value="${data.apr}" min="0" max="60" step="0.1">
+      </div>
+      <div class="field field-tight">
+        <label>Min Payment</label>
+        <div class="input-row"><span class="prefix">$</span><input type="number" class="c-min" value="${data.minPayment}" min="0" step="5"></div>
+      </div>
+    </div>
+  `;
+  container.appendChild(row);
+  row.querySelector('.remove-btn').addEventListener('click', ()=>{
+    row.remove();
+    update();
+  });
+  row.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', update));
+}
+
+$('addCardBtn').addEventListener('click', ()=>{
+  addCardRow({name:`Card ${cardCount+1}`, balance:1000, apr:24.99, minPayment:35});
+  update();
+});
+
+document.querySelectorAll('[data-strategy]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('[data-strategy]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    strategy = btn.dataset.strategy;
+    $('strategyHelper').textContent = strategy === 'avalanche'
+      ? 'Avalanche: pay off the highest-APR card first — minimizes total interest.'
+      : 'Snowball: pay off the lowest-balance card first — quicker early wins.';
+    update();
+  });
+});
+
+document.querySelectorAll('.toggle-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    const subs = {
+      compare:'Total balance across all cards under each approach',
+      bycard:'Balance of each individual card over time, under your plan',
+      interest:'Cumulative interest paid under each approach'
+    };
+    $('chartSub').textContent = subs[currentView];
+    update();
+  });
+});
+
+$('extra').addEventListener('input', update);
+
+function readCards(){
+  const rows = document.querySelectorAll('.card-row');
+  const cards = [];
+  rows.forEach(row=>{
+    const name = row.querySelector('.c-name').value || 'Card';
+    const balance = parseFloat(row.querySelector('.c-balance').value) || 0;
+    const apr = parseFloat(row.querySelector('.c-apr').value) || 0;
+    const minPayment = parseFloat(row.querySelector('.c-min').value) || 0;
+    if (balance > 0){
+      cards.push({name, balance, apr, minRatio: balance > 0 ? minPayment/balance : 0.02, id: Math.random()});
+    }
+  });
+  return cards;
+}
+
+function orderCards(cards, strat){
+  const arr = [...cards];
+  if (strat === 'avalanche') arr.sort((a,b)=>b.apr - a.apr);
+  else if (strat === 'snowball') arr.sort((a,b)=>a.balance - b.balance);
+  return arr;
+}
+
+const MAX_MONTHS = 600;
+const MIN_FLOOR = 25;
+
+// Simulates payoff. If useExtra is false, this is "minimum payments only" (no snowballing extra, no rollover).
+// If useExtra is true, uses fixed monthly budget = sum(initial min payments) + extra, rolling freed payments to target order.
+function simulate(cardsInput, extra, order, useExtra){
+  let cards = cardsInput.map(c => ({...c, balance:c.balance}));
+  const initialMinSum = cards.reduce((s,c)=> s + Math.max(c.balance*c.minRatio, MIN_FLOOR), 0);
+  const budget = useExtra ? (initialMinSum + extra) : null;
+
+  let months = 0;
+  let totalInterest = 0;
+  const perCardBalanceHistory = []; // per month: {name: balance}
+  const totalHistory = []; // per month: {totalBalance, monthInterest, monthPayment, cumInterest}
+  const payoffMonth = {}; // name -> month index when balance hits 0
+
+  while (cards.some(c=>c.balance > 0.005) && months < MAX_MONTHS){
+    months++;
+    let monthInterest = 0;
+    let monthPayment = 0;
+
+    // accrue interest
+    cards.forEach(c=>{
+      if (c.balance > 0){
+        const interest = c.balance * (c.apr/100)/12;
+        c.balance += interest;
+        monthInterest += interest;
+      }
+    });
+
+    if (!useExtra){
+      // pure minimum-payment scenario: pay declining minimum on each active card
+      cards.forEach(c=>{
+        if (c.balance > 0){
+          const due = Math.min(c.balance, Math.max(c.balance*c.minRatio, MIN_FLOOR));
+          c.balance -= due;
+          monthPayment += due;
+          if (c.balance <= 0.005 && payoffMonth[c.name] === undefined) payoffMonth[c.name] = months;
+        }
+      });
+    } else {
+      // fixed budget scenario: pay minimums, then dump leftover on the priority-ordered target
+      let remainingBudget = budget;
+      cards.forEach(c=>{
+        if (c.balance > 0){
+          const due = Math.min(c.balance, Math.max(c.balance*c.minRatio, MIN_FLOOR));
+          c.balance -= due;
+          monthPayment += due;
+          remainingBudget -= due;
+        }
+      });
+      // allocate leftover in strategy order
+      for (const target of order){
+        const c = cards.find(x=>x.name === target.name);
+        if (c && c.balance > 0 && remainingBudget > 0){
+          const pay = Math.min(c.balance, remainingBudget);
+          c.balance -= pay;
+          monthPayment += pay;
+          remainingBudget -= pay;
+        }
+        if (remainingBudget <= 0) break;
+      }
+      cards.forEach(c=>{
+        if (c.balance <= 0.005 && payoffMonth[c.name] === undefined) payoffMonth[c.name] = months;
+      });
+    }
+
+    totalInterest += monthInterest;
+    const totalBalance = cards.reduce((s,c)=>s+Math.max(c.balance,0),0);
+    totalHistory.push({month:months, totalBalance, monthInterest, monthPayment, cumInterest: totalInterest});
+
+    const snap = {};
+    cards.forEach(c=> snap[c.name] = Math.max(c.balance,0));
+    perCardBalanceHistory.push(snap);
+  }
+
+  const negativeAmortization = cards.some(c => {
+    const minDue = Math.max(c.balance*c.minRatio, MIN_FLOOR);
+    return minDue <= c.balance * (c.apr/100)/12 + 0.01 && c.balance > 0;
+  }) && months >= MAX_MONTHS;
+
+  return {
+    months, totalInterest, totalHistory, perCardBalanceHistory, payoffMonth,
+    payoffReached: months < MAX_MONTHS,
+    negativeAmortization
+  };
+}
+
+function formatMonths(m){
+  if (m >= MAX_MONTHS) return `50+ yrs`;
+  const y = Math.floor(m/12);
+  const rem = m % 12;
+  if (y === 0) return `${m} mo`;
+  if (rem === 0) return `${y} yr`;
+  return `${y} yr ${rem} mo`;
+}
+
+function update(){
+  const cards = readCards();
+  const extra = parseFloat($('extra').value) || 0;
+
+  if (cards.length === 0){
+    $('verdictHeadline').textContent = 'Add a card to get started';
+    $('verdictSub').textContent = '';
+    $('verdictWarn').style.display = 'none';
+    $('outStrategyTime').textContent = '—';
+    $('outMinTime').textContent = '—';
+    $('outStrategyDetail').textContent = '';
+    $('outMinDetail').textContent = '';
+    $('payoffOrderList').innerHTML = '';
+    $('scheduleBody').innerHTML = '';
+    if (chart) chart.destroy();
+    return;
+  }
+
+  const order = orderCards(cards, strategy);
+  const strategyResult = simulate(cards, extra, order, true);
+  const minOnlyResult = simulate(cards, 0, order, false);
+
+  // Verdict
+  if (strategyResult.payoffReached){
+    const savedInterest = minOnlyResult.totalInterest - strategyResult.totalInterest;
+    const savedTime = minOnlyResult.months - strategyResult.months;
+    $('verdictHeadline').innerHTML = `Debt-free in <span class="win">${formatMonths(strategyResult.months)}</span>`;
+    if (minOnlyResult.payoffReached && savedInterest > 0){
+      $('verdictSub').textContent = `Your plan saves ${fmt(savedInterest)} in interest and ${formatMonths(savedTime)} vs. minimum payments only`;
+    } else {
+      $('verdictSub').textContent = `Total interest paid under your plan: ${fmt(strategyResult.totalInterest)}`;
+    }
+    $('verdictWarn').style.display = 'none';
+  } else {
+    $('verdictHeadline').textContent = `Not debt-free within 50 years`;
+    $('verdictSub').textContent = `Increase your extra payment to make real progress`;
+    $('verdictWarn').style.display = 'block';
+    $('verdictWarn').textContent = 'Your current payment plan is too small to pay off this debt in a reasonable time.';
+  }
+
+  $('outStrategyTime').textContent = formatMonths(strategyResult.months);
+  $('outStrategyDetail').textContent = `Total interest: ${fmt(strategyResult.totalInterest)}`;
+
+  if (minOnlyResult.negativeAmortization){
+    $('outMinTime').textContent = 'Never';
+    $('outMinDetail').textContent = 'Minimum payments may not exceed monthly interest — balance could stall or grow';
+  } else {
+    $('outMinTime').textContent = formatMonths(minOnlyResult.months);
+    $('outMinDetail').textContent = `Total interest: ${fmt(minOnlyResult.totalInterest)}`;
+  }
+
+  // Payoff order list
+  const listEl = $('payoffOrderList');
+  listEl.innerHTML = '';
+  const sortedByPayoff = [...order].sort((a,b)=>{
+    const ma = strategyResult.payoffMonth[a.name] ?? 999999;
+    const mb = strategyResult.payoffMonth[b.name] ?? 999999;
+    return ma - mb;
+  });
+  sortedByPayoff.forEach(c=>{
+    const li = document.createElement('li');
+    const m = strategyResult.payoffMonth[c.name];
+    li.textContent = `${c.name} — ${c.apr.toFixed(2)}% APR, ${fmt(c.balance)} balance — paid off ${m ? 'month ' + m : 'not within horizon'}`;
+    listEl.appendChild(li);
+  });
+
+  // Table (yearly rollup to keep it readable, but monthly for first 24 months)
+  const body = $('scheduleBody');
+  body.innerHTML = '';
+  strategyResult.totalHistory.forEach(row=>{
+    if (row.month <= 24 || row.month % 12 === 0 || row.month === strategyResult.months){
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${row.month}</td><td>${fmt2(row.monthPayment)}</td><td>${fmt2(row.monthInterest)}</td><td>${fmt2(row.totalBalance)}</td>`;
+      body.appendChild(tr);
+    }
+  });
+
+  renderChart(strategyResult, minOnlyResult, order);
+}
+
+function baseOptions(xLabel, yLabel){
+  return {
+    responsive:true,
+    maintainAspectRatio:true,
+    interaction:{mode:'index', intersect:false},
+    plugins:{
+      legend:{display:true, labels:{font:{family:"'Courier New',monospace", size:11}, color:'#5B6472', boxWidth:12}},
+      tooltip:{callbacks:{label: ctx => `${ctx.dataset.label}: ${Number(ctx.raw).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0})}`}}
+    },
+    scales:{
+      x:{title:{display:true,text:xLabel||'Month', font:{family:"'Courier New',monospace",size:11}, color:'#5B6472'}, grid:{color:'#EDEAE0'}, ticks:{color:'#5B6472', font:{size:10}, maxTicksLimit:12}},
+      y:{title:{display:true,text:yLabel||'', font:{family:"'Courier New',monospace",size:11}, color:'#5B6472'}, grid:{color:'#EDEAE0'}, ticks:{color:'#5B6472', font:{size:10}, callback:v=>'$'+Number(v).toLocaleString()}}
+    }
+  };
+}
+
+const palette = ['#2C3E50','#B8860B','#9B6B43','#4A7C6C','#7A8B99','#9B2C2C'];
+
+function renderChart(strategyResult, minOnlyResult, order){
+  let cfg;
+
+  if (currentView === 'compare'){
+    const maxLen = Math.max(strategyResult.totalHistory.length, minOnlyResult.totalHistory.length);
+    const labels = Array.from({length:maxLen}, (_,i)=>i+1);
+    cfg = {
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          {label:'Your Plan', data: strategyResult.totalHistory.map(r=>r.totalBalance.toFixed(2)), borderColor:'#2C3E50', backgroundColor:'rgba(44,62,80,0.08)', fill:true, tension:0.15, pointRadius:0, borderWidth:2},
+          {label:'Minimum Payments Only', data: minOnlyResult.totalHistory.map(r=>r.totalBalance.toFixed(2)), borderColor:'#9B6B43', backgroundColor:'rgba(155,107,67,0.08)', fill:true, tension:0.15, pointRadius:0, borderWidth:2}
+        ]
+      },
+      options: baseOptions('Month','Total Balance ($)')
+    };
+  } else if (currentView === 'bycard'){
+    const labels = strategyResult.perCardBalanceHistory.map((_,i)=>i+1);
+    const names = order.map(c=>c.name);
+    cfg = {
+      type:'line',
+      data:{
+        labels,
+        datasets: names.map((name,i)=>({
+          label:name,
+          data: strategyResult.perCardBalanceHistory.map(snap=> (snap[name]||0).toFixed(2)),
+          borderColor: palette[i%palette.length],
+          backgroundColor: 'transparent',
+          tension:0.15, pointRadius:0, borderWidth:2
+        }))
+      },
+      options: baseOptions('Month','Balance ($)')
+    };
+  } else {
+    const labels = Array.from({length: Math.max(strategyResult.totalHistory.length, minOnlyResult.totalHistory.length)}, (_,i)=>i+1);
+    cfg = {
+      type:'line',
+      data:{
+        labels,
+        datasets:[
+          {label:'Cumulative Interest — Your Plan', data: strategyResult.totalHistory.map(r=>r.cumInterest.toFixed(2)), borderColor:'#2C3E50', backgroundColor:'rgba(44,62,80,0.08)', fill:true, tension:0.15, pointRadius:0, borderWidth:2},
+          {label:'Cumulative Interest — Minimum Only', data: minOnlyResult.totalHistory.map(r=>r.cumInterest.toFixed(2)), borderColor:'#9B6B43', backgroundColor:'rgba(155,107,67,0.08)', fill:true, tension:0.15, pointRadius:0, borderWidth:2}
+        ]
+      },
+      options: baseOptions('Month','Cumulative Interest ($)')
+    };
+  }
+
+  if (chart) chart.destroy();
+  chart = new Chart($('payoffChart').getContext('2d'), cfg);
+}
+
+defaultCards.forEach(addCardRow);
+update();
+</script>
+</body>
+</html>
