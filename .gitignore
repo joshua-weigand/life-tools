@@ -10,3 +10,5 @@
 
 # Whitelist ONLY HTML files anywhere in the repo
 !*.html
+!*.js
+!*.css

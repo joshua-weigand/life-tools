@@ -1,139 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Life Tools — Financial &amp; Decision Calculators</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #f4f3f0;
-    --surface: #ffffff;
-    --surface-hover: #fcfbf9;
-    --ink: #1a1a1a;
-    --ink-soft: #6e6e6b;
-    --ink-faint: #9a9994;
-    --border: #d9d7d1;
-    --border-strong: #b9b7b0;
-    --shadow: rgba(0, 0, 0, 0.04);
-    --font-display: "Source Serif 4", Georgia, serif;
-    --font-body: "IBM Plex Sans", -apple-system, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #141412; --surface: #1d1d1a; --surface-hover: #242422;
-      --ink: #ece9e2; --ink-soft: #a8a69f; --ink-faint: #78766f;
-      --border: #35342f; --border-strong: #47453e;
-      --shadow: rgba(0, 0, 0, 0.3);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Life Tools</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./shared.css">
+  <style>
+    /* Mobile Header & Toggle Button (Hidden on Desktop) */
+    .mobile-header {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface, #fff);
+      border-bottom: 1px solid var(--border, #D8D3C7);
+      padding: 12px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-  }
+    .mobile-menu-btn {
+      background: none;
+      border: 1px solid var(--border, #D8D3C7);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 18px;
+      line-height: 1;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--ink, #1C2430);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Overlay for mobile drawer */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 105;
+    }
 
-  * { box-sizing: border-box; }
-  body {
-    font-family: var(--font-body); background: var(--bg); color: var(--ink);
-    margin: 0; padding: 48px 20px 80px; line-height: 1.5;
-  }
-  .container { max-width: 800px; margin: 0 auto; }
+    /* Static Category Section Styling */
+    .nav-section {
+      margin-bottom: 16px;
+    }
+    .nav-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--ink-faint, #8c939d);
+      margin-bottom: 6px;
+      font-weight: 600;
+      padding-left: 4px;
+    }
+    .nav-section-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-left: 4px;
+    }
 
-  header { margin-bottom: 36px; }
-  h1 { font-family: var(--font-display); font-weight: 600; font-size: 32px; margin: 0 0 8px 0; letter-spacing: -0.01em; }
-  p.tagline { margin: 0; color: var(--ink-soft); font-size: 16px; max-width: 60ch; }
+    /* Sidebar Navigation Container */
+    .sidebar nav {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      max-height: calc(100vh - 180px);
+      padding-right: 4px;
+    }
 
-  .grid {
-    display: grid; grid-template-columns: 1fr; gap: 14px;
-  }
-  @media (min-width: 600px) {
-    .grid { grid-template-columns: 1fr 1fr; }
-  }
-
-  .card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-    padding: 20px; text-decoration: none; color: inherit; display: flex; flex-direction: column;
-    justify-content: space-between; transition: border-color 0.15s, background-color 0.15s, transform 0.15s;
-    box-shadow: 0 1px 3px var(--shadow);
-  }
-  .card:hover {
-    border-color: var(--border-strong); background: var(--surface-hover); transform: translateY(-1px);
-  }
-  .card h2 {
-    font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0 0 6px 0;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .card h2 span.arrow { font-family: var(--font-body); font-size: 14px; color: var(--ink-faint); transition: transform 0.15s, color 0.15s; }
-  .card:hover h2 span.arrow { color: var(--ink); transform: translateX(3px); }
-  .card p { font-size: 13.5px; color: var(--ink-soft); margin: 0; line-height: 1.45; }
-
-  footer {
-    margin-top: 48px; border-top: 1px solid var(--border); padding-top: 18px;
-    font-size: 12.5px; color: var(--ink-faint); text-align: center;
-  }
-</style>
+    /* Responsive Breakdown for Mobile */
+    @media (max-width: 800px) {
+      .mobile-header {
+        display: flex;
+      }
+      .app-layout {
+        display: block !important;
+      }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: -280px;
+        width: 280px;
+        height: 100vh;
+        z-index: 110;
+        background: var(--surface, #fff);
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 4px 0 16px rgba(0,0,0,0.1);
+      }
+      .sidebar.open {
+        left: 0;
+      }
+      .sidebar-overlay.active {
+        display: block;
+      }
+      .main-content {
+        height: calc(100vh - 53px);
+      }
+      .sidebar nav {
+        max-height: calc(100vh - 140px);
+      }
+    }
+  </style>
 </head>
-<body>
+<body class="shell">
 
-<div class="container">
-  <header>
-    <h1>Life Tools</h1>
-    <p class="tagline">A suite of lightweight, private financial and decision calculators. No tracking, no backend server dependencies.</p>
-  </header>
-
-  <div class="grid">
-    <a href="./auto-loan-calculator.html" class="card">
-      <div>
-        <h2>Auto Loan Calculator <span class="arrow">→</span></h2>
-        <p>Estimate monthly car payments, interest costs, and amortization payoff timelines.</p>
-      </div>
-    </a>
-
-    <a href="./compound-interest-calculator.html" class="card">
-      <div>
-        <h2>Compound Interest <span class="arrow">→</span></h2>
-        <p>Project long-term portfolio growth with customized annual returns and contributions.</p>
-      </div>
-    </a>
-
-    <a href="./credit-card-calculator.html" class="card">
-      <div>
-        <h2>Credit Card Payoff <span class="arrow">→</span></h2>
-        <p>Model payoff timelines and calculate total interest saved by making extra monthly payments.</p>
-      </div>
-    </a>
-
-    <a href="./home-calculator.html" class="card">
-      <div>
-        <h2>Home Affordability <span class="arrow">→</span></h2>
-        <p>Calculate total monthly housing costs including principal, interest, taxes, and insurance.</p>
-      </div>
-    </a>
-
-    <a href="./rent-vs-buy-calculator.html" class="card">
-      <div>
-        <h2>Rent vs. Buy <span class="arrow">→</span></h2>
-        <p>Compare total long-term net worth outcomes between renting and buying real estate.</p>
-      </div>
-    </a>
-
-    <a href="./retirement-calculator.html" class="card">
-      <div>
-        <h2>Retirement Income &amp; Tax <span class="arrow">→</span></h2>
-        <p>Estimate safe withdrawal rates, 30-year balance burn-down, and federal tax brackets.</p>
-      </div>
-    </a>
-
-    <a href="./vehicle-ownership-calculator.html" class="card">
-      <div>
-        <h2>Vehicle Ownership (TCO) <span class="arrow">→</span></h2>
-        <p>Calculate true ownership costs including depreciation, fuel, insurance, and maintenance.</p>
-      </div>
-    </a>
+  <!-- Mobile Top Bar -->
+  <div class="mobile-header">
+    <div style="font-weight: 700; font-family: 'Source Serif 4', serif; font-size: 18px;">Life Tools</div>
+    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Toggle Menu">&#9776;</button>
   </div>
 
-  <footer>
-    100% Client-Side &bull; Privacy Preserved &bull; Open Source
-  </footer>
-</div>
+  <!-- Background Dimmer for Mobile Drawer -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
 
+  <div class="app-layout">
+    <aside class="sidebar" id="appSidebar">
+      <h1>Life Tools</h1>
+      <p class="tagline">Calculators &amp; Planners</p>
+
+      <nav id="sidebar-nav">
+        <!-- Retirement & Wealth Section -->
+        <div class="nav-section">
+          <div class="nav-section-title">Retirement &amp; Wealth</div>
+          <div class="nav-section-links">
+            <a href="./tools/retirement/index.html" target="tool-frame" class="nav-link active" onclick="closeMobileOnSelect()">Retirement Income</a>
+            <a href="./tools/compound-interest/index.html" target="tool-frame" class="nav-link" onclick="closeMobileOnSelect()">Compound Interest</a>
+          </div>
+        </div>
+
+        <!-- Housing & Real Estate Section -->
+        <div class="nav-section">
+          <div class="nav-section-title">Housing &amp; Real Estate</div>
+          <div class="nav-section-links">
+            <a href="./tools/home-ownership/index.html" target="tool-frame" class="nav-link" onclick="closeMobileOnSelect()">Home Ownership</a>
+            <a href="./tools/mortgage-calculator/index.html" target="tool-frame" class="nav-link" onclick="closeMobileOnSelect()">Mortgage Calculator</a>
+            <a href="./tools/rent-vs-buy-calculator/index.html" target="tool-frame" class="nav-link" onclick="closeMobileOnSelect()">Rent vs. Buy Calculator</a>
+          </div>
+        </div>
+
+        <!-- Automotive Section -->
+        <div class="nav-section">
+          <div class="nav-section-title">Automotive</div>
+          <div class="nav-section-links">
+            <a href="./tools/auto-loan/index.html" target="tool-frame" class="nav-link" onclick="closeMobileOnSelect()">Auto Loan</a>
+            <a href="./tools/vehicle-payoff-calculator/index.html" target="tool-frame" class="nav-link" onclick="closeMobileOnSelect()">Vehicle Payoff</a>
+            <a href="./tools/vehicle-ownership-calculator/index.html" target="tool-frame" class="nav-link" onclick="closeMobileOnSelect()">Vehicle Ownership</a>
+          </div>
+        </div>
+
+        <!-- Debt & Credit Section -->
+        <div class="nav-section">
+          <div class="nav-section-title">Debt &amp; Credit</div>
+          <div class="nav-section-links">
+            <a href="./tools/credit-card-payoff/index.html" target="tool-frame" class="nav-link" onclick="closeMobileOnSelect()">Credit Card Payoff</a>
+          </div>
+        </div>
+      </nav>
+      
+      <div style="margin-top: auto; font-size: 12px; color: var(--ink-faint); padding-top: 12px;">
+        100% Client-Side &bull; Open Source
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <!-- The tools load seamlessly inside this frame[cite: 10] -->
+      <iframe name="tool-frame" class="tool-frame" src="./tools/retirement/index.html"></iframe>
+    </main>
+  </div>
+
+  <script>
+    // Toggle mobile sidebar drawer open/closed
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('appSidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('active');
+    }
+
+    // Automatically close mobile menu when a tool link is chosen
+    function closeMobileOnSelect() {
+      if (window.innerWidth <= 800) {
+        toggleMobileSidebar();
+      }
+    }
+  </script>
+  <script src="./app.js"></script>
 </body>
 </html>

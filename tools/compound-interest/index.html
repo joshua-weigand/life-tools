@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compound Interest Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Inherit the global app styling -->
+  <link rel="stylesheet" href="../../shared.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="./script.js" defer></script>
+</head>
+<body class="tool-page">
+
+<div class="container">
+  <header>
+    <div class="row">
+      <div>
+        <h1>Compound Interest Calculator</h1>
+        <p class="tagline">Growth ledger &amp; forecasting. See how your contributions and investment returns stack up over time with the power of compounding.</p>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="resetData()">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Investment Details Inputs -->
+  <div class="inputs-bar">
+    <div class="field">
+      <label for="initial">Initial Investment ($)</label>
+      <input type="number" id="initial" value="10000" min="0" step="500">
+    </div>
+    <div class="field">
+      <label for="contribution">Recurring Contribution ($)</label>
+      <input type="number" id="contribution" value="300" min="0" step="25">
+    </div>
+    <div class="field">
+      <label for="contribFreq">Contribution Frequency</label>
+      <select id="contribFreq">
+        <option value="monthly" selected>Monthly</option>
+        <option value="annually">Annually</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="rate">Expected Return (Annual %)</label>
+      <input type="number" id="rate" value="7" min="-20" max="30" step="0.1">
+    </div>
+    <div class="field">
+      <label for="compoundFreq">Compounding Frequency</label>
+      <select id="compoundFreq">
+        <option value="1">Annually</option>
+        <option value="4">Quarterly</option>
+        <option value="12" selected>Monthly</option>
+        <option value="365">Daily</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="inflation">Adjust for Inflation (%/yr)</label>
+      <input type="number" id="inflation" value="0" min="0" max="10" step="0.1">
+    </div>
+    <div class="field" style="grid-column: 1 / -1;">
+      <label for="years">Time Horizon: <span id="yearsLabel">25</span> years</label>
+      <input type="range" id="years" min="1" max="50" step="1" value="25" style="margin-top: 10px;">
+    </div>
+  </div>
+
+  <!-- Results Hero -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 32px;">
+    <div class="stamp">
+      <div class="label">Future Value</div>
+      <div class="value" id="outFuture">$0</div>
+    </div>
+    <div class="stamp outline">
+      <div class="label">Total Contributed</div>
+      <div class="value" id="outContributed">$0</div>
+    </div>
+    <div class="stamp outline">
+      <div class="label">Total Growth (Interest)</div>
+      <div class="value" id="outGrowth">$0</div>
+    </div>
+    <div class="stamp outline">
+      <div class="label">Real Value (Inflation-Adjusted)</div>
+      <div class="value" id="outReal">$0</div>
+    </div>
+  </div>
+
+  <!-- Reusable Tabs Component -->
+  <div class="view-tabs">
+    <button class="view-tab-btn active" data-view="stacked">Contributions vs. Growth</button>
+    <button class="view-tab-btn" data-view="total">Total Balance</button>
+    <button class="view-tab-btn" data-view="annual">Annual Growth</button>
+    <button class="view-tab-btn" data-view="schedule">Year-by-Year Table</button>
+  </div>
+
+  <!-- Panels -->
+  <div class="view-panel active" id="panel-chart">
+    <div class="card">
+      <h2 id="chartTitle">Contributions vs. Growth</h2>
+      <p class="card-sub" id="chartSub">How your contributions and investment growth stack up year by year.</p>
+      <div class="chart-wrap"><canvas id="growthChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="view-panel" id="panel-schedule">
+    <div class="card">
+      <h2>Year-by-Year Breakdown</h2>
+      <div class="projection-container">
+        <table class="projection-table">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Contributions</th>
+              <th>Growth</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer class="disclaimer">
+    Estimates only. Assumes a constant annual return, which real investments rarely deliver — actual results will vary with market performance, fees, and taxes.
+  </footer>
+</div>
+
+</body>
+</html>

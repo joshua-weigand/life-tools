@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mortgage Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Inherit the global app styling -->
+  <link rel="stylesheet" href="../../shared.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="./script.js" defer></script>
+</head>
+<body class="tool-page">
+
+<div class="container">
+  <header>
+    <div class="row">
+      <div>
+        <h1 id="pageTitle">Mortgage Calculator</h1>
+        <p class="tagline" id="pageTag">Amortization ledger &amp; payment breakdown.</p>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="resetData()">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="inputs-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start;">
+    
+    <!-- Loan Details Card -->
+    <div class="card" style="margin-bottom: 0;">
+      <h3 style="font-size: 15px; font-weight: 600; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Loan Details</h3>
+      
+      <div class="field">
+        <label for="price">Home Price ($)</label>
+        <input type="number" id="price" value="450000" min="0" step="5000">
+      </div>
+
+      <div class="field">
+        <label>Down Payment</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <input type="number" id="down" value="90000" min="0" step="1000" placeholder="$">
+          </div>
+          <div>
+            <input type="number" id="downPct" value="20" min="0" max="100" step="0.5" placeholder="%">
+          </div>
+        </div>
+        <div class="helper-text" id="downHelper" style="font-size: 12px; margin-top: 4px; color: var(--ink-soft);">20% down avoids PMI</div>
+      </div>
+
+      <div class="field">
+        <label for="rate">Interest Rate (APR %)</label>
+        <input type="number" id="rate" value="6.75" min="0" max="20" step="0.05">
+      </div>
+
+      <div class="field">
+        <label>Loan Term</label>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="term-btn ghost" data-term="15" style="flex:1;">15 yr</button>
+          <button type="button" class="term-btn ghost" data-term="20" style="flex:1;">20 yr</button>
+          <button type="button" class="term-btn active" data-term="30" style="flex:1;">30 yr</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Property Tax</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+          <input type="number" id="taxPct" value="1.1" min="0" max="5" step="0.05" title="Tax %/yr">
+          <input type="number" id="taxMonthly" value="0" min="0" step="10" title="Tax $/mo override">
+        </div>
+        <div class="helper-text" style="font-size: 11px; margin-top: 2px; color: var(--ink-soft);">Left: % of home value/yr | Right: override $/mo</div>
+      </div>
+
+      <div class="field">
+        <label for="insurance">Homeowners Insurance ($/mo)</label>
+        <input type="number" id="insurance" value="150" min="0" step="10">
+      </div>
+
+      <div class="field">
+        <label for="hoa">HOA Dues ($/mo)</label>
+        <input type="number" id="hoa" value="0" min="0" step="10">
+      </div>
+
+      <div class="field" style="margin-bottom: 0;">
+        <label for="pmiRate">PMI Rate (%/yr if &lt;20% down)</label>
+        <input type="number" id="pmiRate" value="0.6" min="0" max="3" step="0.05">
+      </div>
+    </div>
+
+    <!-- Results & Visualization Column -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+        <div class="stamp" style="grid-column: 1 / -1;">
+          <div class="label">Estimated Monthly Payment (PITI)</div>
+          <div class="value" id="outMonthly" style="font-size: 32px; margin-top: 4px;">$0</div>
+          <div class="detail" id="breakdownInline" style="font-size: 12px; margin-top: 8px; display: flex; gap: 16px; flex-wrap: wrap;"></div>
+        </div>
+        <div class="stamp outline">
+          <div class="label">Loan Amount</div>
+          <div class="value" id="outLoanAmount">$0</div>
+        </div>
+        <div class="stamp outline">
+          <div class="label">Total Interest Paid</div>
+          <div class="value" id="outInterest" style="color: #B8860B;">$0</div>
+        </div>
+        <div class="stamp outline">
+          <div class="label">Total Cost of Loan</div>
+          <div class="value" id="outTotalCost">$0</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 0;">
+        <div class="row" style="align-items: center; margin-bottom: 12px;">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600;">Balance &amp; Cost Over Time</h2>
+          <div class="view-tabs" style="margin: 0; border: none;">
+            <button class="view-tab-btn active" data-view="balance" style="padding: 6px 12px; font-size: 12px;">Balance</button>
+            <button class="view-tab-btn" data-view="split" style="padding: 6px 12px; font-size: 12px;">Split</button>
+            <button class="view-tab-btn" data-view="cumulative" style="padding: 6px 12px; font-size: 12px;">Cumulative</button>
+          </div>
+        </div>
+        <p class="card-sub" id="chartSub" style="font-size: 13px; color: var(--ink-soft); margin-bottom: 16px;">Remaining loan balance over the life of the mortgage.</p>
+        <div class="chart-wrap"><canvas id="loanChart"></canvas></div>
+      </div>
+
+      <div class="card" style="margin-bottom: 0;">
+        <h2 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">Amortization Schedule</h2>
+        <div class="projection-container">
+          <table class="projection-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Payment</th>
+                <th>Principal</th>
+                <th>Interest</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <footer class="disclaimer" style="margin-top: 32px;">
+    Estimates only. Actual rates, taxes, insurance premiums, and PMI depend on your lender, location, and credit profile. PMI is estimated to drop off once the loan balance reaches 80% of the original home price.
+  </footer>
+</div>
+
+</body>
+</html>

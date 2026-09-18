@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retirement Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../shared.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Link to the isolated JS logic -->
+  <script src="./script.js" defer></script>
+</head>
+<body class="tool-page">
+
+<div class="container">
+  <header>
+    <div class="row">
+      <div>
+        <h1>Retirement Income &amp; Tax Planner</h1>
+        <p class="tagline">Enter your balance, age, withdrawal rate, and Social Security. We'll estimate your after-tax monthly income, how long your savings last, and exactly what you'd owe in each tax bracket.</p>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="openModal()">Customize ⚙</button>
+        <button class="ghost" onclick="resetData()">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Input Bar with Withdrawal Rate -->
+  <div class="inputs-bar">
+    <div class="field">
+      <label for="balance">Current account balance ($)</label>
+      <input type="number" id="balance" value="500000" oninput="calculate()">
+    </div>
+    <div class="field">
+      <label for="withdrawalRate">Annual withdrawal rate (%)</label>
+      <input type="number" id="withdrawalRate" value="4" step="0.25" min="0" max="20" oninput="calculate()">
+    </div>
+    <div class="field">
+      <label for="age">Your age</label>
+      <input type="number" id="age" value="65" min="18" max="110" oninput="calculate()">
+    </div>
+    <div class="field">
+      <label for="ss">Annual Social Security ($)</label>
+      <input type="number" id="ss" value="24000" oninput="calculate()">
+    </div>
+  </div>
+  <p class="assumptions-note" id="assumptionsNote">
+    Assumes a <strong id="noteRate">4%</strong> annual withdrawal, <strong id="noteGrowth">6%</strong> investment growth,
+    <strong>30% of withdrawals</strong> taxed as long-term capital gains (rest as ordinary income),
+    filing status <strong id="noteFiling">Single</strong>, and 2026 federal tax brackets.
+    <button class="link" onclick="openModal()">Customize this →</button>
+  </p>
+
+  <div class="hero">
+    <div class="stamp">
+      <div class="label">Your income, after tax</div>
+      <div class="value" id="heroMonthly">$0/mo</div>
+      <div class="sub" id="heroMonthlySub">—</div>
+    </div>
+    <div class="stamp outline">
+      <div class="label">Your savings last until</div>
+      <div class="value" id="heroLongevity">—</div>
+      <div class="sub" id="heroLongevitySub">—</div>
+    </div>
+  </div>
+
+  <div class="view-tabs">
+    <button class="view-tab-btn active" data-view="balance" onclick="switchViewTab('balance')">Balance over time</button>
+    <button class="view-tab-btn" data-view="yoy" onclick="switchViewTab('yoy')">Year-over-year</button>
+    <button class="view-tab-btn" data-view="taxes" onclick="switchViewTab('taxes')">Taxes</button>
+  </div>
+
+  <div class="view-panel active" id="view-balance">
+    <div class="card">
+      <h2>Balance over time</h2>
+      <p class="card-sub">Your projected 30-year burn-down at this withdrawal rate and return rate.</p>
+      <div class="chart-wrap"><canvas id="burndownChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="view-panel" id="view-yoy">
+    <div class="card">
+      <h2>Year-by-year</h2>
+      <div class="projection-container">
+        <table class="projection-table">
+          <thead><tr><th>Age</th><th>Start balance</th><th>Withdrawal</th><th>Growth</th><th>End balance</th></tr></thead>
+          <tbody id="projectionBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="view-panel" id="view-taxes">
+    <div class="card">
+      <h2>Tax bracket breakdown</h2>
+      <p class="card-sub" id="bracketSub">What you'd owe this year, bracket by bracket.</p>
+      <p class="ss-note" id="ssNote"></p>
+
+      <div class="bracket-group">
+        <h3>Ordinary income tax</h3>
+        <div id="ordinaryBrackets"></div>
+      </div>
+
+      <div class="bracket-group">
+        <h3>Capital gains tax</h3>
+        <div id="capGainsBrackets"></div>
+      </div>
+
+      <div class="bracket-total">
+        <span>Total estimated tax</span>
+        <span id="resTotalTax">$0</span>
+      </div>
+    </div>
+  </div>
+
+  <footer class="disclaimer">
+    Estimates only, based on 2026 federal tax brackets (IRS Rev. Proc. 2025-32) and the simplifying assumptions above.
+    Does not account for state taxes, RMDs, IRMAA, or future law changes. Not tax or financial advice —
+    consult a professional for decisions specific to you. Your inputs are saved only in this browser (localStorage) and are never sent anywhere.
+  </footer>
+</div>
+
+<!-- Modal with Return Rate Input -->
+<dialog id="settingsModal">
+  <div class="modal-header">
+    <h2>Customize</h2>
+    <button class="ghost" onclick="closeModal()">Close</button>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="general" onclick="switchTab('general')">Filing &amp; growth</button>
+    <button class="tab-btn" data-tab="income" onclick="switchTab('income')">Additional income</button>
+    <button class="tab-btn" data-tab="brackets" onclick="switchTab('brackets')">2026 tax brackets</button>
+  </div>
+  <div class="modal-body">
+    <div class="tab-panel active" id="tab-general">
+      <div class="modal-field">
+        <label for="filingStatus">Tax filing status</label>
+        <select id="filingStatus" onchange="calculate()">
+          <option value="single">Single</option>
+          <option value="hoh">Head of Household</option>
+          <option value="mfj">Married Filing Jointly</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label for="growthRate">Expected return rate (%)</label>
+        <input type="number" id="growthRate" value="6" step="0.25" min="-10" max="30" oninput="calculate()">
+        <div class="hint">Your estimated annual portfolio growth rate before inflation.</div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-income">
+      <div class="modal-field">
+        <label for="additionalIncome">Additional annual income ($)</label>
+        <input type="number" id="additionalIncome" value="0" oninput="calculate()">
+        <div class="hint">Pension, part-time work, rental income, or anything else outside your retirement account and Social Security. Treated as ordinary taxable income.</div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-brackets">
+      <table class="ref-table" id="refOrdinaryTable">
+        <caption id="refOrdinaryCaption">2026 Ordinary Income Brackets — Single</caption>
+        <thead><tr><th>Rate</th><th>Income range</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <table class="ref-table" id="refCapGainsTable" style="margin-top: 18px;">
+        <caption id="refCapGainsCaption">2026 Long-Term Capital Gains Brackets — Single</caption>
+        <thead><tr><th>Rate</th><th>Taxable income over</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p class="hint" style="margin-top: 12px;">Source: IRS Revenue Procedure 2025-32. Brackets update automatically with the filing status you choose in the first tab.</p>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="solid" onclick="closeModal()">Done</button>
+  </div>
+</dialog>
+
+</body>
+</html>

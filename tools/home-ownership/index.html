@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Ownership &amp; Rent vs. Buy Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Inherit the global app styling -->
+  <link rel="stylesheet" href="../../shared.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="./script.js" defer></script>
+</head>
+<body class="tool-page">
+
+<div class="container">
+  <header>
+    <div class="row">
+      <div>
+        <h1 id="pageTitle">Mortgage &amp; Rent vs. Buy Calculator</h1>
+        <p class="tagline" id="pageTag">Amortization ledger &amp; wealth comparison forecasting.</p>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="resetData()">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mode Toggle Selector -->
+  <div class="view-tabs" style="margin-bottom: 24px;">
+    <button class="view-tab-btn active" data-mode="mortgage">Mortgage Calculator</button>
+    <button class="view-tab-btn" data-mode="compare">Rent vs. Buy Analysis</button>
+  </div>
+
+  <div class="inputs-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; align-items: start;">
+    
+    <!-- Loan & Home Basics Card -->
+    <div class="card" style="margin-bottom: 0;">
+      <h3 id="loanCardTitle" style="font-size: 15px; font-weight: 600; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Loan Details</h3>
+      
+      <div class="field">
+        <label for="price">Home Price ($)</label>
+        <input type="number" id="price" value="450000" min="0" step="5000">
+      </div>
+
+      <div class="field">
+        <label>Down Payment</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <input type="number" id="down" value="90000" min="0" step="1000" placeholder="$">
+          </div>
+          <div>
+            <input type="number" id="downPct" value="20" min="0" max="100" step="0.5" placeholder="%">
+          </div>
+        </div>
+        <div class="helper-text" id="downHelper" style="font-size: 12px; margin-top: 4px; color: var(--ink-soft);">20% down avoids PMI</div>
+      </div>
+
+      <div class="field">
+        <label for="rate">Interest Rate (APR %)</label>
+        <input type="number" id="rate" value="6.75" min="0" max="20" step="0.05">
+      </div>
+
+      <div class="field">
+        <label>Loan Term</label>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="term-btn ghost" data-term="15" style="flex:1;">15 yr</button>
+          <button type="button" class="term-btn ghost" data-term="20" style="flex:1;">20 yr</button>
+          <button type="button" class="term-btn active" data-term="30" style="flex:1;">30 yr</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Property Tax &amp; Insurance</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px;">
+          <input type="number" id="taxPct" value="1.1" min="0" max="5" step="0.05" title="Tax %/yr">
+          <input type="number" id="taxMonthly" value="0" min="0" step="10" title="Tax $/mo override">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <input type="number" id="insurance" value="150" min="0" step="10" title="Insurance $/mo">
+          <input type="number" id="hoa" value="0" min="0" step="10" title="HOA $/mo">
+        </div>
+        <div class="helper-text" style="font-size: 11px; margin-top: 4px; color: var(--ink-soft);">Left: Tax (%/yr) &amp; Ins ($/mo) | Right: Tax ($/mo) &amp; HOA ($/mo)</div>
+      </div>
+
+      <div class="field" style="margin-bottom: 0;">
+        <label for="pmiRate">PMI Rate (%/yr if &lt;20% down)</label>
+        <input type="number" id="pmiRate" value="0.6" min="0" max="3" step="0.05">
+      </div>
+    </div>
+
+    <!-- Rent vs Buy Secondary Assumptions (Conditional) -->
+    <div id="compareInputsContainer" style="display: flex; flex-direction: column; gap: 20px;">
+      <div class="card compare-only hidden" style="margin-bottom: 0;">
+        <h3 style="font-size: 15px; font-weight: 600; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--principal);">Buying — Extra Assumptions</h3>
+        
+        <div class="field">
+          <label for="maintPct">Maintenance (%/yr)</label>
+          <input type="number" id="maintPct" value="1" min="0" max="5" step="0.1">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="field">
+            <label for="closingPct">Closing Costs (%)</label>
+            <input type="number" id="closingPct" value="3" min="0" max="10" step="0.5">
+          </div>
+          <div class="field">
+            <label for="sellingPct">Selling Costs (%)</label>
+            <input type="number" id="sellingPct" value="7" min="0" max="12" step="0.5">
+          </div>
+        </div>
+
+        <div class="field" style="margin-bottom: 0;">
+          <label for="appreciation">Home Appreciation (%/yr)</label>
+          <input type="number" id="appreciation" value="3.5" min="-10" max="15" step="0.1">
+        </div>
+      </div>
+
+      <div class="card compare-only hidden" style="margin-bottom: 0;">
+        <h3 style="font-size: 15px; font-weight: 600; margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: #9B6B43;">Renting &amp; Horizon</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="field">
+            <label for="rent">Monthly Rent ($)</label>
+            <input type="number" id="rent" value="2400" min="0" step="50">
+          </div>
+          <div class="field">
+            <label for="rentGrowth">Rent Growth (%/yr)</label>
+            <input type="number" id="rentGrowth" value="3" min="0" max="15" step="0.1">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="investReturn">Investment Return (%/yr on surplus cash)</label>
+          <input type="number" id="investReturn" value="7" min="0" max="20" step="0.1">
+        </div>
+
+        <div class="field" style="margin-bottom: 0;">
+          <label for="years">Horizon: Years Until Selling/Moving (<span id="yearsLabel">7</span> yrs)</label>
+          <input type="range" id="years" min="1" max="30" step="1" value="7" style="width: 100%; accent-color: var(--accent); margin-top: 8px;">
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Mortgage Mode Results -->
+  <div id="mortgageResults" style="margin-top: 24px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 24px;">
+      <div class="stamp" style="grid-column: 1 / -1;">
+        <div class="label">Estimated Monthly Payment (PITI)</div>
+        <div class="value" id="outMonthly" style="font-size: 32px; margin-top: 4px;">$0</div>
+        <div class="detail" id="breakdownInline" style="font-size: 12px; margin-top: 8px; display: flex; gap: 16px; flex-wrap: wrap;"></div>
+      </div>
+      <div class="stamp outline">
+        <div class="label">Loan Amount</div>
+        <div class="value" id="outLoanAmount">$0</div>
+      </div>
+      <div class="stamp outline">
+        <div class="label">Total Interest Paid</div>
+        <div class="value" id="outInterest" style="color: #B8860B;">$0</div>
+      </div>
+      <div class="stamp outline">
+        <div class="label">Total Cost of Loan</div>
+        <div class="value" id="outTotalCost">$0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items: center; margin-bottom: 12px;">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600;">Balance &amp; Cost Over Time</h2>
+        <div class="view-tabs" style="margin: 0; border: none;">
+          <button class="view-tab-btn active" data-mview="balance" style="padding: 6px 12px; font-size: 12px;">Balance</button>
+          <button class="view-tab-btn" data-mview="split" style="padding: 6px 12px; font-size: 12px;">Split</button>
+          <button class="view-tab-btn" data-mview="cumulative" style="padding: 6px 12px; font-size: 12px;">Cumulative</button>
+        </div>
+      </div>
+      <p class="card-sub" id="mortgageChartSub" style="font-size: 13px; color: var(--ink-soft); margin-bottom: 16px;">Remaining loan balance over the life of the mortgage.</p>
+      <div class="chart-wrap"><canvas id="loanChart"></canvas></div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <h2 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">Amortization Schedule</h2>
+      <div class="projection-container">
+        <table class="projection-table">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Payment</th>
+              <th>Principal</th>
+              <th>Interest</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compare Mode Results -->
+  <div id="compareResults" class="hidden" style="margin-top: 24px;">
+    <div style="background: var(--surface); border: 1px solid var(--border); padding: 24px; text-align: center; margin-bottom: 24px; border-radius: 8px;">
+      <div id="verdictHeadline" style="font-size: 22px; font-weight: 600; margin-bottom: 6px;">—</div>
+      <div id="verdictSub" style="color: var(--ink-soft); font-size: 13px;">—</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 24px;">
+      <div class="stamp">
+        <div class="label">Net Worth if You Buy</div>
+        <div class="value" id="outBuyNet" style="color: var(--principal);">$0</div>
+        <div class="detail" id="outBuyDetail" style="font-size: 11.5px; margin-top: 6px; color: var(--ink-soft);"></div>
+      </div>
+      <div class="stamp outline">
+        <div class="label">Net Worth if You Rent</div>
+        <div class="value" id="outRentNet" style="color: #9B6B43;">$0</div>
+        <div class="detail" id="outRentDetail" style="font-size: 11.5px; margin-top: 6px; color: var(--ink-soft);"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="align-items: center; margin-bottom: 12px;">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 600;">Net Worth Over Time</h2>
+        <div class="view-tabs" style="margin: 0; border: none;">
+          <button class="view-tab-btn active" data-cview="networth" style="padding: 6px 12px; font-size: 12px;">Net Worth</button>
+          <button class="view-tab-btn" data-cview="monthly" style="padding: 6px 12px; font-size: 12px;">Monthly Cost</button>
+          <button class="view-tab-btn" data-cview="cumulative" style="padding: 6px 12px; font-size: 12px;">Cumulative Cash</button>
+        </div>
+      </div>
+      <p class="card-sub" id="compareChartSub" style="font-size: 13px; color: var(--ink-soft); margin-bottom: 16px;">Projected net worth under each scenario, year by year.</p>
+      <div class="chart-wrap"><canvas id="compareChart"></canvas></div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <h2 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">Year-by-Year Detail</h2>
+      <div class="projection-container">
+        <table class="projection-table">
+          <thead>
+            <tr>
+              <th>Year</th>
+              <th>Buy Monthly</th>
+              <th>Rent Monthly</th>
+              <th>Buy Net Worth</th>
+              <th>Rent Net Worth</th>
+            </tr>
+          </thead>
+          <tbody id="compareScheduleBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer class="disclaimer" id="footerMortgage" style="margin-top: 32px;">
+    Estimates only. Actual rates, taxes, insurance premiums, and PMI depend on your lender, location, and credit profile. PMI is estimated to drop off once the loan balance reaches 80% of the original home price.
+  </footer>
+  <footer class="disclaimer hidden" id="footerCompare" style="margin-top: 32px;">
+    Estimates only. Model assumes: the renter invests the down payment, closing costs, and any month where buying costs more than renting, all at the stated investment return; the buyer's equity is appreciated home value minus remaining mortgage balance minus selling costs, and PMI (if applicable) is included in buying's monthly cost until the balance reaches 80% of the original price. Income taxes and mortgage interest deductions are not included. Actual outcomes depend on market performance, local costs, and your personal finances.
+  </footer>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Payoff Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Inherit global app styling -->
+  <link rel="stylesheet" href="../../shared.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="./script.js" defer></script>
+</head>
+<body class="tool-page">
+
+<div class="container">
+  <header>
+    <div class="row">
+      <div>
+        <h1 id="pageTitle">Vehicle Payoff Calculator</h1>
+        <p class="tagline" id="pageTag">Loan acceleration ledger &amp; interest savings modeler.</p>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="resetData()">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="inputs-bar" style="display: grid; grid-template-columns: 340px 1fr; gap: 24px; align-items: start;">
+    
+    <!-- Left Column: Inputs -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      
+      <!-- Loan Details Card -->
+      <div class="card" style="margin-bottom: 0;">
+        <h3 style="font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--buy); margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--buy); padding-bottom: 8px;">Current Loan Details</h3>
+
+        <div class="field">
+          <label for="balance">Remaining Loan Balance ($)</label>
+          <input type="number" id="balance" value="24000" min="0" step="500">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="field">
+            <label for="rate">Interest Rate (APR %)</label>
+            <input type="number" id="rate" value="6.5" min="0" max="25" step="0.1">
+          </div>
+          <div class="field">
+            <label for="payment">Current Payment ($/mo)</label>
+            <input type="number" id="payment" value="520" min="0" step="10">
+          </div>
+        </div>
+      </div>
+
+      <!-- Acceleration Strategy Card -->
+      <div class="card" style="margin-bottom: 0;">
+        <h3 style="font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--rent); margin-top: 0; margin-bottom: 16px; border-bottom: 1px solid var(--rent); padding-bottom: 8px;">Acceleration Strategy</h3>
+
+        <div class="field">
+          <label for="extraMonthly">Extra Monthly Payment ($)</label>
+          <input type="number" id="extraMonthly" value="150" min="0" step="25">
+          <div class="helper-text" style="font-size: 11px; margin-top: 4px; color: var(--ink-soft);">Added to your regular monthly payment</div>
+        </div>
+
+        <div class="field" style="margin-bottom: 0;">
+          <label for="extraLump">One-Time Extra Payment ($)</label>
+          <input type="number" id="extraLump" value="0" min="0" step="100">
+          <div class="helper-text" style="font-size: 11px; margin-top: 4px; color: var(--ink-soft);">Applied immediately in month 1</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Results & Visualizations -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      
+      <!-- Verdict Stamp -->
+      <div class="stamp" style="text-align: center; padding: 24px;">
+        <div class="label" style="font-size: 12px; letter-spacing: 1px; text-transform: uppercase;">Acceleration Impact</div>
+        <div class="value" id="verdictHeadline" style="font-size: 24px; margin-top: 6px;">—</div>
+        <div class="detail" id="verdictSub" style="font-size: 13px; margin-top: 4px; color: var(--ink-soft);">—</div>
+      </div>
+
+      <!-- Metrics Grid -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;" id="metricsGrid">
+        <div class="stamp outline" style="border-left: 4px solid var(--buy);">
+          <div class="label">New Payoff Time</div>
+          <div class="value" id="outNewTime" style="font-size: 20px; color: var(--buy); margin-top: 4px;">—</div>
+        </div>
+        <div class="stamp outline" style="border-left: 4px solid var(--rent);">
+          <div class="label">Interest Saved</div>
+          <div class="value" id="outInterestSaved" style="font-size: 20px; color: var(--rent); margin-top: 4px;">$0</div>
+        </div>
+        <div class="stamp outline" style="border-left: 4px solid var(--ink);">
+          <div class="label">Time Saved</div>
+          <div class="value" id="outTimeSaved" style="font-size: 20px; color: var(--ink); margin-top: 4px;">—</div>
+        </div>
+      </div>
+
+      <!-- Chart Card -->
+      <div class="card" style="margin-bottom: 0;">
+        <div class="row" style="align-items: center; margin-bottom: 12px;">
+          <h2 style="margin: 0; font-size: 16px; font-weight: 600;">Loan Balance Trajectory</h2>
+        </div>
+        <p class="card-sub" id="chartSub" style="font-size: 13px; color: var(--ink-soft); margin-bottom: 16px;">Comparing original vs. accelerated payoff balance over time.</p>
+        <div class="chart-wrap" style="height: 280px; position:relative;"><canvas id="payoffChart"></canvas></div>
+      </div>
+
+      <!-- Detail Table Card -->
+      <div class="card" style="margin-bottom: 0;">
+        <h2 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">Amortization Schedule (Accelerated)</h2>
+        <div class="projection-container" style="max-height: 320px; overflow-y: auto;">
+          <table class="projection-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Payment</th>
+                <th>Principal</th>
+                <th>Interest</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <footer class="disclaimer" style="margin-top: 32px;">
+    Estimates only. Calculations assume fixed monthly payments compounded monthly at the stated APR. Extra payments are assumed to apply directly toward reducing the principal balance. Check with your auto lender to confirm they do not charge prepayment penalties.
+  </footer>
+</div>
+
+</body>
+</html>

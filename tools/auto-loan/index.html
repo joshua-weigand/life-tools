@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Loan Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Inherit the global app styling -->
+  <link rel="stylesheet" href="../../shared.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="./script.js" defer></script>
+</head>
+<body class="tool-page">
+
+<div class="container">
+  <header>
+    <div class="row">
+      <div>
+        <h1>Auto Loan Calculator</h1>
+        <p class="tagline">Amortization ledger &amp; payoff comparison. See exactly how much your vehicle will cost you in interest, and calculate the impact of paying extra each month.</p>
+      </div>
+      <div class="actions">
+        <button class="ghost" onclick="resetData()">Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Loan Details Inputs -->
+  <div class="inputs-bar">
+    <div class="field">
+      <label for="price">Vehicle Price ($)</label>
+      <input type="number" id="price" value="35000" min="0" step="500">
+    </div>
+    <div class="field">
+      <label for="down">Down Payment ($)</label>
+      <input type="number" id="down" value="5000" min="0" step="500">
+    </div>
+    <div class="field">
+      <label for="tradein">Trade-In Value ($)</label>
+      <input type="number" id="tradein" value="0" min="0" step="500">
+    </div>
+    <div class="field">
+      <label for="fees">Taxes &amp; Fees ($)</label>
+      <input type="number" id="fees" value="0" min="0" step="100">
+    </div>
+    <div class="field">
+      <label for="rate">Interest Rate (APR %)</label>
+      <input type="number" id="rate" value="6.5" min="0" max="30" step="0.1">
+    </div>
+    <div class="field">
+      <label for="term">Loan Term: <span id="termLabel">60</span> mo</label>
+      <input type="range" id="term" min="12" max="84" step="12" value="60" style="margin-top: 10px;">
+    </div>
+  </div>
+
+  <!-- Override Payment Option -->
+  <div class="card" style="margin-bottom: 24px; padding: 16px 22px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <input type="checkbox" id="overrideToggle" style="width: auto;">
+      <label for="overrideToggle" style="margin: 0; font-size: 14px; font-weight: 600; color: var(--ink); cursor: pointer;">
+        Override Monthly Payment
+      </label>
+    </div>
+    <div id="overrideBody" style="display: none; margin-top: 12px;">
+      <div class="field" style="max-width: 250px;">
+        <label for="overridePayment">New Monthly Payment ($)</label>
+        <input type="number" id="overridePayment" min="0" step="10">
+      </div>
+      <p class="assumptions-note" id="overrideHint" style="margin-top: 8px; margin-bottom: 0;"></p>
+    </div>
+    <div id="overrideWarning" style="display: none; color: #d93025; font-size: 13px; font-weight: 500; margin-top: 10px; padding: 10px; background: #fce8e6; border-radius: 6px;"></div>
+  </div>
+
+  <!-- Results Hero (Using flex to handle 3 columns gracefully) -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px;">
+    <div class="stamp">
+      <div class="label">Amount Financed</div>
+      <div class="value" id="outFinanced">$0</div>
+    </div>
+    <div class="stamp outline">
+      <div class="label">Monthly Payment</div>
+      <div class="value" id="outPayment">$0</div>
+    </div>
+    <div class="stamp outline">
+      <div class="label">Total Interest Paid</div>
+      <div class="value" id="outInterest">$0</div>
+    </div>
+  </div>
+
+  <!-- Comparison Card (Only visible when override is checked) -->
+  <div class="card" id="compareCard" style="display: none; border-color: var(--ink);">
+    <h2>Payoff Comparison</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 16px;">
+      <div>
+        <h3 style="font-size: 13px; color: var(--ink-soft); text-transform: uppercase; margin: 0 0 8px 0; border-bottom: 1px solid var(--border); padding-bottom: 4px;">Standard Schedule</h3>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0;"><span style="color: var(--ink-soft);">Payment</span> <strong id="cmpStdPayment"></strong></div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0;"><span style="color: var(--ink-soft);">Payoff Time</span> <strong id="cmpStdTime"></strong></div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0;"><span style="color: var(--ink-soft);">Total Interest</span> <strong id="cmpStdInterest"></strong></div>
+      </div>
+      <div>
+        <h3 style="font-size: 13px; color: var(--ink); text-transform: uppercase; margin: 0 0 8px 0; border-bottom: 1px solid var(--ink); padding-bottom: 4px;">With Override</h3>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0;"><span style="color: var(--ink-soft);">Payment</span> <strong id="cmpNewPayment"></strong></div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0;"><span style="color: var(--ink-soft);">Payoff Time</span> <strong id="cmpNewTime"></strong></div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0;"><span style="color: var(--ink-soft);">Total Interest</span> <strong id="cmpNewInterest"></strong></div>
+      </div>
+    </div>
+    <div id="savingsStrip" style="background: var(--surface-2); padding: 12px 16px; border-radius: 6px; display: flex; justify-content: space-between; font-weight: 600; font-size: 14.5px;">
+      <span>Payoff: <span id="cmpMonthsSaved"></span></span>
+      <span>Interest: <span id="cmpInterestSaved"></span></span>
+    </div>
+  </div>
+
+  <!-- Reusable Tabs Component -->
+  <div class="view-tabs" style="margin-top: 32px;">
+    <button class="view-tab-btn active" data-view="balance">Remaining Balance</button>
+    <button class="view-tab-btn" data-view="split">Payment Breakdown</button>
+    <button class="view-tab-btn" data-view="cumulative">Cumulative Paid</button>
+    <button class="view-tab-btn" data-view="schedule">Amortization Table</button>
+  </div>
+
+  <!-- Panels -->
+  <div class="view-panel active" id="panel-chart">
+    <div class="card">
+      <h2 id="chartTitle">Remaining Balance</h2>
+      <p class="card-sub" id="chartSub">Principal balance over the life of the loan.</p>
+      <div class="chart-wrap"><canvas id="loanChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="view-panel" id="panel-schedule">
+    <div class="card">
+      <h2>Amortization Schedule</h2>
+      <div class="projection-container">
+        <table class="projection-table">
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Payment</th>
+              <th>Principal</th>
+              <th>Interest</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody id="scheduleBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer class="disclaimer">
+    Estimates only. Actual rates, fees, and terms depend on your lender and creditworthiness. Interest is calculated on a standard monthly-amortizing basis.
+  </footer>
+</div>
+
+</body>
+</html>
