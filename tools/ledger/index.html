@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Expense Tracker</title>
+<link rel="stylesheet" href="../../shared.css">
+<link rel="stylesheet" href="ledger-custom.css">
+</head>
+<body>
+
+<div class="tape-fixed" id="tape-fixed">
+  <div class="tape-fixed-inner">
+    <div class="tape">
+      <div class="tape-top">
+        <div class="tape-title">Ledger</div>
+        <div class="tape-controls">
+          <div class="period-picker">
+            <button type="button" class="period-nav" id="period-prev" aria-label="Previous period">‹</button>
+            <select id="period-month"></select>
+            <select id="period-year"></select>
+            <button type="button" class="period-nav" id="period-next" aria-label="Next period">›</button>
+          </div>
+          <button class="add-expense-btn" id="add-expense-btn">+ Add expense</button>
+          <button class="upload-expense-btn" id="upload-expense-btn" type="button" title="Upload a JSON or CSV file">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            Upload
+          </button>
+          <input type="file" id="upload-input" accept=".csv,.json,application/json,text/csv">
+          <button class="icon-btn" id="settings-btn" type="button" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </button>
+        </div>
+      </div>
+      <div class="tape-total-label" id="total-label">Spent this month</div>
+      <div class="tape-total num" id="tape-total">$0.00</div>
+      <div class="tape-sub">
+        <div><span id="stat-avg-label">Avg / day</span> <span class="v num" id="stat-avg">$0.00</span></div>
+        <div>Top category <span class="v" id="stat-top">—</span></div>
+        <div>Transactions <span class="v num" id="stat-count">0</span></div>
+      </div>
+      <div class="daily-chart-wrap" id="daily-chart-wrap"></div>
+    </div>
+    <div class="toolbar-bar">
+      <div class="toolbar">
+        <div class="toolbar-rows">
+          <div class="filters" id="cat-filters"></div>
+          <select class="type-filter-select" id="type-filter-select" aria-label="Filter by type"></select>
+        </div>
+        <div class="search-field">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="search-input" placeholder="Search name or category…">
+        </div>
+        <button class="ghost" id="select-mode-btn" type="button">Edit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="wrap">
+  <div class="card single-card">
+    <h2>Transactions</h2>
+    <div class="bulk-bar" id="bulk-bar">
+      <div class="left">
+        <label class="checkbox-row" style="margin:0;">
+          <input type="checkbox" id="bulk-select-all">
+          <span id="bulk-count">0 selected</span>
+        </label>
+      </div>
+      <div class="actions">
+        <button class="ghost" id="bulk-edit-btn" disabled>Edit</button>
+        <button class="danger" id="bulk-delete-btn" disabled>Delete</button>
+        <button class="ghost" id="bulk-cancel-btn">Cancel</button>
+      </div>
+    </div>
+    <div id="txn-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="add-modal-overlay">
+  <div class="modal">
+    <h2 style="margin-bottom:16px;" id="add-modal-title">Add an expense</h2>
+    <div class="entry-form">
+      <div class="field">
+        <label for="f-date">Date</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="field">
+        <label for="f-amount">Amount</label>
+        <input type="number" id="f-amount" step="0.01" min="0" placeholder="0.00">
+      </div>
+      <div class="field">
+        <label for="f-category">Category</label>
+        <select id="f-category">
+          <option>Food</option>
+          <option>Transport</option>
+          <option>Housing</option>
+          <option>Bills & Utilities</option>
+          <option>Utilities</option>
+          <option>Entertainment</option>
+          <option>Health</option>
+          <option>Shopping</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-type">Type</label>
+        <select id="f-type">
+          <option>Sale</option>
+          <option>Return</option>
+          <option>Payment</option>
+        </select>
+      </div>
+      <div class="field" style="flex:1; min-width:160px;">
+        <label for="f-note">Name / description</label>
+        <input type="text" id="f-note" placeholder="Optional" style="width:100%;">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" id="add-modal-cancel-btn">Cancel</button>
+      <button class="solid" id="add-btn">Add expense</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settings-modal-overlay">
+  <div class="modal">
+    <h2 style="margin-bottom:4px;">Settings</h2>
+    <p class="modal-sub">Manage the data stored for Ledger in this browser.</p>
+
+    <div class="settings-section">
+      <h3>Storage</h3>
+      <div class="storage-stats">
+        <div class="storage-stat">
+          <div class="label">Transactions</div>
+          <div class="value num" id="settings-stat-count">0</div>
+        </div>
+        <div class="storage-stat">
+          <div class="label">Data size</div>
+          <div class="value num" id="settings-stat-size">0 KB</div>
+        </div>
+        <div class="storage-stat">
+          <div class="label">Oldest entry</div>
+          <div class="value num" id="settings-stat-oldest">—</div>
+        </div>
+      </div>
+      <div class="storage-bar-track">
+        <div class="storage-bar-fill" id="settings-storage-bar" style="width:0%"></div>
+      </div>
+      <p style="font-size:12px; color: var(--ink-soft); margin: 8px 0 0;" id="settings-storage-note">Estimated share of typical browser local storage capacity used by Ledger.</p>
+    </div>
+
+    <div class="settings-section">
+      <h3>Backup &amp; restore</h3>
+      <p style="font-size:13px; color: var(--ink-soft); margin: 0 0 12px;">Everything lives only in this browser's local storage — nothing is sent anywhere. Export a backup regularly, especially before clearing browser data or switching devices.</p>
+      <div class="footer-buttons">
+        <button class="ghost" id="export-json-btn">Export JSON</button>
+        <button class="ghost" id="export-csv-btn">Export CSV</button>
+        <button class="ghost" id="import-btn">Import JSON</button>
+        <input type="file" id="import-input" accept="application/json">
+        <button class="ghost" id="import-csv-btn">Import CSV</button>
+        <input type="file" id="import-csv-input" accept=".csv,text/csv">
+      </div>
+    </div>
+
+    <div class="settings-section" style="margin-bottom:0;">
+      <h3>Danger zone</h3>
+      <p style="font-size:13px; color: var(--ink-soft); margin: 0 0 12px;">Permanently delete all expense data stored in this browser. This can't be undone — export a backup first if you're not sure.</p>
+      <button class="danger" id="clear-btn">Clear all data</button>
+    </div>
+
+    <div class="modal-actions" style="justify-content:flex-end;">
+      <button class="ghost" id="settings-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bulk-edit-modal-overlay">
+  <div class="modal">
+    <h2 style="margin-bottom:4px;" id="bulk-edit-title">Edit transactions</h2>
+    <p class="modal-sub">Check a field to change it for every selected transaction. Leave a field unchecked to keep each transaction's existing value.</p>
+
+    <div class="bulk-field-row disabled" id="bulk-row-category">
+      <label class="checkbox-row">
+        <input type="checkbox" id="bulk-use-category">
+        Set category
+      </label>
+      <div class="field">
+        <select id="bulk-category">
+          <option>Food</option>
+          <option>Transport</option>
+          <option>Housing</option>
+          <option>Bills & Utilities</option>
+          <option>Utilities</option>
+          <option>Entertainment</option>
+          <option>Health</option>
+          <option>Shopping</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="bulk-field-row disabled" id="bulk-row-date">
+      <label class="checkbox-row">
+        <input type="checkbox" id="bulk-use-date">
+        Set date
+      </label>
+      <div class="field">
+        <input type="date" id="bulk-date">
+      </div>
+    </div>
+
+    <div class="bulk-field-row disabled" id="bulk-row-type">
+      <label class="checkbox-row">
+        <input type="checkbox" id="bulk-use-type">
+        Set type
+      </label>
+      <div class="field">
+        <select id="bulk-type">
+          <option>Sale</option>
+          <option>Return</option>
+          <option>Payment</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="bulk-field-row disabled" id="bulk-row-note">
+      <label class="checkbox-row">
+        <input type="checkbox" id="bulk-use-note">
+        Set name / description
+      </label>
+      <div class="field">
+        <input type="text" id="bulk-note" placeholder="Replaces name/description on all selected">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="ghost" id="bulk-edit-cancel-btn">Cancel</button>
+      <button class="solid" id="bulk-edit-save-btn">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="csv-modal-overlay">
+  <div class="modal">
+    <h2 style="margin-bottom:4px;">Map your CSV columns</h2>
+    <p class="modal-sub">Tell us which column in <span id="csv-filename" class="num"></span> holds each field. Date and amount are required.</p>
+
+    <div class="map-grid">
+      <div class="field">
+        <label for="map-date">Date <span class="req">*</span></label>
+        <select id="map-date"></select>
+      </div>
+      <div class="field">
+        <label for="map-amount">Amount <span class="req">*</span></label>
+        <select id="map-amount"></select>
+      </div>
+      <div class="field">
+        <label for="map-category">Category</label>
+        <select id="map-category"></select>
+      </div>
+      <div class="field">
+        <label for="map-type">Type <span class="req">*</span></label>
+        <select id="map-type"></select>
+      </div>
+      <div class="field">
+        <label for="map-note">Note</label>
+        <select id="map-note"></select>
+      </div>
+    </div>
+
+    <label class="checkbox-row" id="map-negate-row">
+      <input type="checkbox" id="map-negate">
+      Amounts are negative for spending (flip the sign)
+    </label>
+    <label class="checkbox-row" id="map-skip-negative-row">
+      <input type="checkbox" id="map-skip-negative" checked>
+      Skip rows that come out negative or zero (likely income/refunds)
+    </label>
+    <p class="modal-sub" id="map-type-note" style="margin-top:-2px;">When a Type column is mapped, each row's Sale/Return/Payment value determines whether it's a charge or a credit — the two checkboxes above are ignored.</p>
+
+    <div class="preview-wrap">
+      <div class="modal-sub" style="margin-bottom:6px;">Preview (first rows)</div>
+      <div class="preview-scroll">
+        <table class="preview-table" id="csv-preview-table"></table>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <div class="num" id="csv-row-count" style="font-size:12px; color: var(--ink-soft);"></div>
+      <div style="display:flex; gap:8px;">
+        <button class="ghost" id="csv-cancel-btn">Cancel</button>
+        <button class="solid" id="csv-confirm-btn">Import expenses</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="script.js" defer></script>
+</body>
+</html>
